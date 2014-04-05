@@ -15,19 +15,21 @@ MainWindow::MainWindow(QWidget *parent) :
     parent_transform_ = new osg::MatrixTransform();
     plane_manager_ = std::move(std::unique_ptr<ParallelPlaneManager>(new ParallelPlaneManager(parent_transform_)));
 
-    QWidget* widget1 = addViewWidget( createGraphicsWindow(0,0,100,100), osgDB::readNodeFile("fountain.osgt") );
+    QWidget* widget1 = addParallelPlaneWidget( createGraphicsWindow(0,0,100,100) );
+    QWidget* widget2 = addModellerWidget( createGraphicsWindow(0,0,100,100), osgDB::readNodeFile("brain.ply") );
     setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
 
     // disable the default setting of viewer.done() by pressing Escape.
     setKeyEventSetsDone(0);
     ui->setupUi(this);
-    //ui->dockWidget->setWidget(widget1);
 
     ui->gridLayout->addWidget(widget1,0,0);
+    ui->gridLayout_2->addWidget(widget2,0,0);
     ui->statusBar->showMessage("Building planes");
 
     plane_manager_->AddNewPlane(76,92);
     plane_manager_->AddNewPlane(3,15);
+    plane_manager_->AddNewPlane(67,83);
     ui->statusBar->showMessage("Respacing");
 
     plane_manager_->BuildSpacing(5,1);
@@ -53,9 +55,20 @@ void MainWindow::close(){
 }
 
 void MainWindow::TestDrawPoints(const size_t& idx){
+    //TODO:  Right now points/lines are drawn relative
+    //to the geode that created them (ie: local coordinates)
+    //This makes it a challenge to draw lines correctly
+    //because the endpoint will be offset by the parallel plane's
+    //position.  EIther we need to subject the current plane's transform
+    //from the end point or points/lines shouldn't be drawn in local coordinates
+
     ParallelPlane *pl = plane_manager_->get_plane(idx);
+    ParallelPlane *pl2 = plane_manager_->get_plane(idx+1);
+
     Database *db = plane_manager_->get_database();
     osg::Geode *geode = pl->get_geode();
+    osg::Geode *geode2 = pl2->get_geode();
+
     {
         // create Geometry object to store all the vertices and points primitive.
         osg::Geometry* pointsGeom = new osg::Geometry();
@@ -93,7 +106,7 @@ void MainWindow::TestDrawPoints(const size_t& idx){
         osg::Vec3Array* vertices = new osg::Vec3Array();
         for(int i = 0; i < db->NumRows(); i++){
             vertices->push_back(pl->Domain(i));
-            vertices->push_back(pl->Domain(i) + osg::Vec3f(0,0,-1));
+            vertices->push_back(pl2->ReverseDomain(i));
         }
 
         osg::Vec4Array* colors = new osg::Vec4Array();
@@ -119,10 +132,8 @@ void MainWindow::TestDrawPoints(const size_t& idx){
     }
 }
 
-QWidget* MainWindow::addViewWidget( osgQt::GraphicsWindowQt* gw, osg::Node* scene)
+QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
 {
-    Q_UNUSED(scene);
-
     osgViewer::View* view = new osgViewer::View;
     addView( view );
 
@@ -145,7 +156,30 @@ QWidget* MainWindow::addViewWidget( osgQt::GraphicsWindowQt* gw, osg::Node* scen
 
     return gw->getGLWidget();
 }
+QWidget* MainWindow::addModellerWidget( osgQt::GraphicsWindowQt* gw, osg::Node* scene)
+{
+    osgViewer::View* view = new osgViewer::View;
+    addView( view );
 
+    osg::Camera* camera = view->getCamera();
+    camera->setGraphicsContext( gw );
+
+    const osg::GraphicsContext::Traits* traits = gw->getTraits();
+
+    camera->setClearColor( osg::Vec4(0.2, 0.2, 0.6, 1.0) );
+    camera->setViewport( new osg::Viewport(0, 0, traits->width, traits->height) );
+    camera->setProjectionMatrixAsPerspective(30.0f, static_cast<double>(traits->width)/static_cast<double>(traits->height), 1.0f, 1000.0f );
+
+
+    //TODO: orthographic camera (osg TrackballManipulator doesn't support ortho zoom so we'll need a custom camera
+    //camera->setProjectionMatrixAsOrtho(0.0f, 100,0.0f,100, 1.0f, 10000.0f );
+
+    view->setSceneData(scene);
+    view->addEventHandler( new osgViewer::StatsHandler );
+    view->setCameraManipulator( new osgGA::TrackballManipulator );
+
+    return gw->getGLWidget();
+}
 void MainWindow::testBarChartDemo(QCustomPlot *customPlot)
 {
   // create empty bar chart objects:

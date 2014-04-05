@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'MainWindow.ui'
 **
-** Created: Sat Apr 5 19:06:44 2014
+** Created: Sat Apr 5 19:26:25 2014
 **      by: Qt User Interface Compiler version 4.8.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -35,6 +35,8 @@ public:
     QGridLayout *gridLayout;
     QGroupBox *groupBox;
     QCustomPlot *plotWidget;
+    QWidget *gridLayoutWidget_2;
+    QGridLayout *gridLayout_2;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QStatusBar *statusBar;
@@ -70,7 +72,7 @@ public:
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         gridLayoutWidget = new QWidget(centralWidget);
         gridLayoutWidget->setObjectName(QString::fromUtf8("gridLayoutWidget"));
-        gridLayoutWidget->setGeometry(QRect(10, 20, 1141, 391));
+        gridLayoutWidget->setGeometry(QRect(10, 20, 1141, 311));
         gridLayout = new QGridLayout(gridLayoutWidget);
         gridLayout->setSpacing(6);
         gridLayout->setContentsMargins(11, 11, 11, 11);
@@ -78,16 +80,25 @@ public:
         gridLayout->setContentsMargins(0, 0, 0, 0);
         groupBox = new QGroupBox(centralWidget);
         groupBox->setObjectName(QString::fromUtf8("groupBox"));
-        groupBox->setGeometry(QRect(0, 0, 1171, 431));
+        groupBox->setGeometry(QRect(0, 0, 1171, 351));
         groupBox->setFlat(false);
         groupBox->setCheckable(false);
         plotWidget = new QCustomPlot(centralWidget);
         plotWidget->setObjectName(QString::fromUtf8("plotWidget"));
-        plotWidget->setGeometry(QRect(659, 449, 501, 261));
+        plotWidget->setGeometry(QRect(629, 379, 531, 331));
+        gridLayoutWidget_2 = new QWidget(centralWidget);
+        gridLayoutWidget_2->setObjectName(QString::fromUtf8("gridLayoutWidget_2"));
+        gridLayoutWidget_2->setGeometry(QRect(10, 360, 531, 351));
+        gridLayout_2 = new QGridLayout(gridLayoutWidget_2);
+        gridLayout_2->setSpacing(6);
+        gridLayout_2->setContentsMargins(11, 11, 11, 11);
+        gridLayout_2->setObjectName(QString::fromUtf8("gridLayout_2"));
+        gridLayout_2->setContentsMargins(0, 0, 0, 0);
         MainWindow->setCentralWidget(centralWidget);
         groupBox->raise();
         gridLayoutWidget->raise();
         plotWidget->raise();
+        gridLayoutWidget_2->raise();
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
         menuBar->setGeometry(QRect(0, 0, 1164, 21));
