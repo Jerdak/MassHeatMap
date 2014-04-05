@@ -22,18 +22,36 @@
      <colorrole role="WindowText">
       <brush brushstyle="SolidPattern">
        <color alpha="255">
-        <red>235</red>
-        <green>235</green>
-        <blue>235</blue>
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </colorrole>
+     <colorrole role="Text">
+      <brush brushstyle="SolidPattern">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </colorrole>
+     <colorrole role="ButtonText">
+      <brush brushstyle="SolidPattern">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
        </color>
       </brush>
      </colorrole>
      <colorrole role="Base">
       <brush brushstyle="SolidPattern">
        <color alpha="255">
-        <red>255</red>
-        <green>255</green>
-        <blue>255</blue>
+        <red>213</red>
+        <green>213</green>
+        <blue>213</blue>
        </color>
       </brush>
      </colorrole>
@@ -51,9 +69,27 @@
      <colorrole role="WindowText">
       <brush brushstyle="SolidPattern">
        <color alpha="255">
-        <red>235</red>
-        <green>235</green>
-        <blue>235</blue>
+        <red>143</red>
+        <green>143</green>
+        <blue>143</blue>
+       </color>
+      </brush>
+     </colorrole>
+     <colorrole role="Text">
+      <brush brushstyle="SolidPattern">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </colorrole>
+     <colorrole role="ButtonText">
+      <brush brushstyle="SolidPattern">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
        </color>
       </brush>
      </colorrole>
@@ -78,6 +114,24 @@
     </inactive>
     <disabled>
      <colorrole role="WindowText">
+      <brush brushstyle="SolidPattern">
+       <color alpha="255">
+        <red>120</red>
+        <green>120</green>
+        <blue>120</blue>
+       </color>
+      </brush>
+     </colorrole>
+     <colorrole role="Text">
+      <brush brushstyle="SolidPattern">
+       <color alpha="255">
+        <red>120</red>
+        <green>120</green>
+        <blue>120</blue>
+       </color>
+      </brush>
+     </colorrole>
+     <colorrole role="ButtonText">
       <brush brushstyle="SolidPattern">
        <color alpha="255">
         <red>120</red>
@@ -114,9 +168,9 @@
    <widget class="QWidget" name="gridLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>20</y>
-      <width>1141</width>
+      <width>1121</width>
       <height>311</height>
      </rect>
     </property>
@@ -125,10 +179,10 @@
    <widget class="QGroupBox" name="groupBox">
     <property name="geometry">
      <rect>
-      <x>0</x>
+      <x>10</x>
       <y>0</y>
-      <width>1171</width>
-      <height>351</height>
+      <width>1141</width>
+      <height>341</height>
      </rect>
     </property>
     <property name="title">
@@ -144,24 +198,52 @@
    <widget class="QCustomPlot" name="plotWidget" native="true">
     <property name="geometry">
      <rect>
-      <x>629</x>
-      <y>379</y>
-      <width>531</width>
-      <height>331</height>
+      <x>589</x>
+      <y>369</y>
+      <width>551</width>
+      <height>341</height>
      </rect>
     </property>
    </widget>
    <widget class="QWidget" name="gridLayoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>360</y>
+      <x>20</x>
+      <y>370</y>
       <width>531</width>
-      <height>351</height>
+      <height>341</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout_2"/>
    </widget>
+   <widget class="QGroupBox" name="groupBox_2">
+    <property name="geometry">
+     <rect>
+      <x>580</x>
+      <y>349</y>
+      <width>571</width>
+      <height>371</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string> Statistics </string>
+    </property>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_3">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>350</y>
+      <width>551</width>
+      <height>371</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string> Model Renderer</string>
+    </property>
+   </widget>
+   <zorder>groupBox_2</zorder>
+   <zorder>groupBox_3</zorder>
    <zorder>groupBox</zorder>
    <zorder>gridLayoutWidget</zorder>
    <zorder>plotWidget</zorder>

@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'MainWindow.ui'
 **
-** Created: Sat Apr 5 19:26:25 2014
+** Created: Sat Apr 5 19:48:42 2014
 **      by: Qt User Interface Compiler version 4.8.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -37,6 +37,8 @@ public:
     QCustomPlot *plotWidget;
     QWidget *gridLayoutWidget_2;
     QGridLayout *gridLayout_2;
+    QGroupBox *groupBox_2;
+    QGroupBox *groupBox_3;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QStatusBar *statusBar;
@@ -48,21 +50,31 @@ public:
         MainWindow->resize(1164, 773);
         MainWindow->setMinimumSize(QSize(1164, 773));
         QPalette palette;
-        QBrush brush(QColor(235, 235, 235, 255));
+        QBrush brush(QColor(0, 0, 0, 255));
         brush.setStyle(Qt::SolidPattern);
         palette.setBrush(QPalette::Active, QPalette::WindowText, brush);
-        QBrush brush1(QColor(255, 255, 255, 255));
+        palette.setBrush(QPalette::Active, QPalette::Text, brush);
+        palette.setBrush(QPalette::Active, QPalette::ButtonText, brush);
+        QBrush brush1(QColor(213, 213, 213, 255));
         brush1.setStyle(Qt::SolidPattern);
         palette.setBrush(QPalette::Active, QPalette::Base, brush1);
         QBrush brush2(QColor(67, 67, 67, 255));
         brush2.setStyle(Qt::SolidPattern);
         palette.setBrush(QPalette::Active, QPalette::Window, brush2);
-        palette.setBrush(QPalette::Inactive, QPalette::WindowText, brush);
-        palette.setBrush(QPalette::Inactive, QPalette::Base, brush1);
-        palette.setBrush(QPalette::Inactive, QPalette::Window, brush2);
-        QBrush brush3(QColor(120, 120, 120, 255));
+        QBrush brush3(QColor(143, 143, 143, 255));
         brush3.setStyle(Qt::SolidPattern);
-        palette.setBrush(QPalette::Disabled, QPalette::WindowText, brush3);
+        palette.setBrush(QPalette::Inactive, QPalette::WindowText, brush3);
+        palette.setBrush(QPalette::Inactive, QPalette::Text, brush);
+        palette.setBrush(QPalette::Inactive, QPalette::ButtonText, brush);
+        QBrush brush4(QColor(255, 255, 255, 255));
+        brush4.setStyle(Qt::SolidPattern);
+        palette.setBrush(QPalette::Inactive, QPalette::Base, brush4);
+        palette.setBrush(QPalette::Inactive, QPalette::Window, brush2);
+        QBrush brush5(QColor(120, 120, 120, 255));
+        brush5.setStyle(Qt::SolidPattern);
+        palette.setBrush(QPalette::Disabled, QPalette::WindowText, brush5);
+        palette.setBrush(QPalette::Disabled, QPalette::Text, brush5);
+        palette.setBrush(QPalette::Disabled, QPalette::ButtonText, brush5);
         palette.setBrush(QPalette::Disabled, QPalette::Base, brush2);
         palette.setBrush(QPalette::Disabled, QPalette::Window, brush2);
         MainWindow->setPalette(palette);
@@ -72,7 +84,7 @@ public:
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         gridLayoutWidget = new QWidget(centralWidget);
         gridLayoutWidget->setObjectName(QString::fromUtf8("gridLayoutWidget"));
-        gridLayoutWidget->setGeometry(QRect(10, 20, 1141, 311));
+        gridLayoutWidget->setGeometry(QRect(20, 20, 1121, 311));
         gridLayout = new QGridLayout(gridLayoutWidget);
         gridLayout->setSpacing(6);
         gridLayout->setContentsMargins(11, 11, 11, 11);
@@ -80,21 +92,29 @@ public:
         gridLayout->setContentsMargins(0, 0, 0, 0);
         groupBox = new QGroupBox(centralWidget);
         groupBox->setObjectName(QString::fromUtf8("groupBox"));
-        groupBox->setGeometry(QRect(0, 0, 1171, 351));
+        groupBox->setGeometry(QRect(10, 0, 1141, 341));
         groupBox->setFlat(false);
         groupBox->setCheckable(false);
         plotWidget = new QCustomPlot(centralWidget);
         plotWidget->setObjectName(QString::fromUtf8("plotWidget"));
-        plotWidget->setGeometry(QRect(629, 379, 531, 331));
+        plotWidget->setGeometry(QRect(589, 369, 551, 341));
         gridLayoutWidget_2 = new QWidget(centralWidget);
         gridLayoutWidget_2->setObjectName(QString::fromUtf8("gridLayoutWidget_2"));
-        gridLayoutWidget_2->setGeometry(QRect(10, 360, 531, 351));
+        gridLayoutWidget_2->setGeometry(QRect(20, 370, 531, 341));
         gridLayout_2 = new QGridLayout(gridLayoutWidget_2);
         gridLayout_2->setSpacing(6);
         gridLayout_2->setContentsMargins(11, 11, 11, 11);
         gridLayout_2->setObjectName(QString::fromUtf8("gridLayout_2"));
         gridLayout_2->setContentsMargins(0, 0, 0, 0);
+        groupBox_2 = new QGroupBox(centralWidget);
+        groupBox_2->setObjectName(QString::fromUtf8("groupBox_2"));
+        groupBox_2->setGeometry(QRect(580, 349, 571, 371));
+        groupBox_3 = new QGroupBox(centralWidget);
+        groupBox_3->setObjectName(QString::fromUtf8("groupBox_3"));
+        groupBox_3->setGeometry(QRect(10, 350, 551, 371));
         MainWindow->setCentralWidget(centralWidget);
+        groupBox_2->raise();
+        groupBox_3->raise();
         groupBox->raise();
         gridLayoutWidget->raise();
         plotWidget->raise();
@@ -122,6 +142,8 @@ public:
         MainWindow->setWindowTitle(QApplication::translate("MainWindow", "MainWindow", 0, QApplication::UnicodeUTF8));
         actionClose->setText(QApplication::translate("MainWindow", "Close", 0, QApplication::UnicodeUTF8));
         groupBox->setTitle(QApplication::translate("MainWindow", "  Parallel Planes ", 0, QApplication::UnicodeUTF8));
+        groupBox_2->setTitle(QApplication::translate("MainWindow", " Statistics ", 0, QApplication::UnicodeUTF8));
+        groupBox_3->setTitle(QApplication::translate("MainWindow", " Model Renderer", 0, QApplication::UnicodeUTF8));
         menuFile->setTitle(QApplication::translate("MainWindow", "File", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 
