@@ -14,12 +14,16 @@ PRECOMPILED_HEADER = Stable.h
 SOURCES += main.cpp\
         MainWindow.cpp \
     ParallelPlane.cpp \
-    Database.cpp
+    Database.cpp \
+    ParallelPlaneManager.cpp \
+    qcustomplot.cpp
 
 HEADERS  += MainWindow.h \
     Stable.h \
     ParallelPlane.h \
-    Database.h
+    Database.h \
+    ParallelPlaneManager.h \
+    qcustomplot.h
 
 FORMS    += MainWindow.ui
 

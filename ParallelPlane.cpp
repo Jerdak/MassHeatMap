@@ -1,7 +1,16 @@
 #include "ParallelPlane.h"
 #include <osg/Node>
+#include <osg/Matrix>
+#include <osg/MatrixTransform>
 
-osg::Geometry* myCreateTexturedQuadGeometry(const osg::Vec3& pos,float width,float height, osg::Image* image, bool useTextureRectangle, bool xyPlane, bool option_flip)
+osg::Geometry* ParallelPlane::myCreateTexturedQuadGeometry(
+        const osg::Vec3& pos,
+        float width,
+        float height,
+        osg::Image* image,
+        bool useTextureRectangle,
+        bool xyPlane,
+        bool option_flip)
 {
     bool flip = image->getOrigin()==osg::Image::TOP_LEFT;
     if (option_flip) flip = !flip;
@@ -45,18 +54,37 @@ osg::Geometry* myCreateTexturedQuadGeometry(const osg::Vec3& pos,float width,flo
         return pictureQuad;
     }
 }
+void ParallelPlane::SetPosition(osg::Vec3f pos){
+    osg::Matrix t;
+    t.makeTranslate(pos);
 
-ParallelPlane::ParallelPlane(osg::Geode *node,Database *db):
-    node_(node),
-    db_(db)
+    osg::Matrix m = transform_->getMatrix();
+    transform_->setMatrix(m*t);
+}
+
+ParallelPlane::ParallelPlane(osg::Geode *geode,osg::MatrixTransform *transform,Database *db):
+    geode_(geode),
+    db_(db),
+    transform_(transform)
 {
-    image_ = osgDB::readImageFile("gradient.bmp");
+    image_ = osgDB::readImageFile("gradient2.bmp");
     osg::ref_ptr<osg::Drawable> drawable = myCreateTexturedQuadGeometry(osg::Vec3(0,0,0),1,1,image_,false,true,false);
-    node_->addDrawable(drawable);
+
+//    osg::Matrix t;
+//    t.makeTranslate(osg::Vec3f(0,12,0));
+
+  //  transform_->setMatrix(t);
+   // transform_->addDrawable(geode_);
+//    transform_->addChild(drawable.get());
+   // geode_->asTransform()->asMatrixTransform()->setMatrix(t);
+    geode_->addDrawable(drawable);
 }
 
 
 osg::Vec3f ParallelPlane::Domain(const int& row){
+
+    osg::Matrix m = transform_->getMatrix();
+
     float data[2];
 
     // get data for row[datum][axes_[0] and row[datum][axes_[1]]
@@ -71,6 +99,12 @@ osg::Vec3f ParallelPlane::Domain(const int& row){
 
     return ret;
 }
+
+osg::Vec3f ParallelPlane::ReverseDomain(const int& row){
+    osg::Matrix m = transform_->getMatrix();
+    return Domain(row) * m;
+}
+
 osg::Vec4f ParallelPlane::Color(const int& row){
     float data[2];
 

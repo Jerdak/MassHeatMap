@@ -1,8 +1,10 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "ParallelPlane.h"
+#include "ParallelPlaneManager.h"
 #include "Database.h"
+#include "qcustomplot.h"
+
 namespace Ui {
     class MainWindow;
 }
@@ -21,13 +23,25 @@ public:
         Q_UNUSED(event);
         frame();
     }
-    void TestDrawPoints();
+    void TestDrawPoints(const size_t& idx=0);
+    void testBarChartDemo(QCustomPlot *customPlot);
+
 private:
     Ui::MainWindow *ui;
     QTimer _timer;
-    ParallelPlane *pl_;
-    Database db_;
-    osg::Geode *geode_;
+
+    std::unique_ptr<ParallelPlaneManager> plane_manager_;
+    osg::MatrixTransform *parent_transform_;
+private slots:
+    void close();
+
+//    ParallelPlane *pl_;
+//    ParallelPlane *pl2_;
+//    Database db_;
+//    osg::Geode *geode_;
+//    osg::Geode *geode2_;
+//    osg::MatrixTransform *transform_;
+//    osg::MatrixTransform *transform2_;
 };
 
 #endif // MAINWINDOW_H

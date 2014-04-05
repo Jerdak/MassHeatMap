@@ -10,7 +10,10 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    db_.LoadData("test_nominal_scrub.csv");
+    //db_.LoadData("test_nominal_scrub.csv");
+
+    parent_transform_ = new osg::MatrixTransform();
+    plane_manager_ = std::move(std::unique_ptr<ParallelPlaneManager>(new ParallelPlaneManager(parent_transform_)));
 
     QWidget* widget1 = addViewWidget( createGraphicsWindow(0,0,100,100), osgDB::readNodeFile("fountain.osgt") );
     setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
@@ -21,32 +24,38 @@ MainWindow::MainWindow(QWidget *parent) :
     //ui->dockWidget->setWidget(widget1);
 
     ui->gridLayout->addWidget(widget1,0,0);
+    ui->statusBar->showMessage("Building planes");
 
-    TestDrawPoints();
+    plane_manager_->AddNewPlane(76,92);
+    plane_manager_->AddNewPlane(3,15);
+    ui->statusBar->showMessage("Respacing");
+
+    plane_manager_->BuildSpacing(5,1);
+    ui->statusBar->showMessage("Drawing points");
+
+    TestDrawPoints(0);
+    TestDrawPoints(1);
+
+
+    ui->statusBar->showMessage("Scene Render Complete.");
+    testBarChartDemo(ui->plotWidget);
     connect( &_timer, SIGNAL(timeout()), this, SLOT(update()) );
+    connect(ui->actionClose,SIGNAL(triggered()),this,SLOT(close()));
     _timer.start( 10 );
-
-//    Database db;
-//    db.LoadData("test_nominal_scrub.csv");
-//    db.dbgData(10);
-
-//    QString min_range = "";
-//    QString max_range = "";
-//    for(int c = 0; c < db.NumColumns(); c++){
-//        min_range += QString::number(db.Min(c)) + " ";
-//        max_range += QString::number(db.Max(c)) + " ";
-//    }
-//    qDebug() << "Min Range: " << min_range;
-//    qDebug() << "Max Range: " << max_range;
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+void MainWindow::close(){
+   QApplication::quit();
+}
 
-void MainWindow::TestDrawPoints(){
-
+void MainWindow::TestDrawPoints(const size_t& idx){
+    ParallelPlane *pl = plane_manager_->get_plane(idx);
+    Database *db = plane_manager_->get_database();
+    osg::Geode *geode = pl->get_geode();
     {
         // create Geometry object to store all the vertices and points primitive.
         osg::Geometry* pointsGeom = new osg::Geometry();
@@ -58,15 +67,15 @@ void MainWindow::TestDrawPoints(){
         // of the most popular of all STL containers.
         osg::Vec3Array* vertices = new osg::Vec3Array;
 
-        for(int i = 0; i < db_.NumRows(); i++){
-            vertices->push_back(pl_->Domain(i));
+        for(int i = 0; i < db->NumRows(); i++){
+            vertices->push_back(pl->Domain(i));
         }
         // pass the created vertex array to the points geometry object.
         pointsGeom->setVertexArray(vertices);
 
         osg::Vec4Array* colors = new osg::Vec4Array;
-        for(int i = 0; i < db_.NumRows(); i++){
-            colors->push_back(pl_->Color(i));
+        for(int i = 0; i < db->NumRows(); i++){
+            colors->push_back(pl->Color(i));
         }
         pointsGeom->setColorArray(colors, osg::Array::BIND_PER_VERTEX);
 
@@ -77,20 +86,20 @@ void MainWindow::TestDrawPoints(){
         pointsGeom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::POINTS,0,vertices->size()));
 
         // add the points geometry to the geode.
-        geode_->addDrawable(pointsGeom);
+        geode->addDrawable(pointsGeom);
     }
     {
         osg::Geometry* linesGeom = new osg::Geometry();
         osg::Vec3Array* vertices = new osg::Vec3Array();
-        for(int i = 0; i < db_.NumRows(); i++){
-            vertices->push_back(pl_->Domain(i));
-            vertices->push_back(pl_->Domain(i) + osg::Vec3f(0,0,-1));
+        for(int i = 0; i < db->NumRows(); i++){
+            vertices->push_back(pl->Domain(i));
+            vertices->push_back(pl->Domain(i) + osg::Vec3f(0,0,-1));
         }
 
         osg::Vec4Array* colors = new osg::Vec4Array();
-        for(int i = 0; i < db_.NumRows(); i++){
-            colors->push_back(pl_->Color(i));
-            colors->push_back(pl_->Color(i));
+        for(int i = 0; i < db->NumRows(); i++){
+            colors->push_back(pl->Color(i));
+            colors->push_back(pl->Color(i));
         }
 
         linesGeom->setColorArray(colors, osg::Array::BIND_PER_VERTEX);
@@ -106,10 +115,10 @@ void MainWindow::TestDrawPoints(){
         linesGeom->setStateSet(stateset);
 
         // add the points geomtry to the geode.
-        geode_->addDrawable(linesGeom);
-
+        geode->addDrawable(linesGeom);
     }
 }
+
 QWidget* MainWindow::addViewWidget( osgQt::GraphicsWindowQt* gw, osg::Node* scene)
 {
     Q_UNUSED(scene);
@@ -124,85 +133,86 @@ QWidget* MainWindow::addViewWidget( osgQt::GraphicsWindowQt* gw, osg::Node* scen
 
     camera->setClearColor( osg::Vec4(0.2, 0.2, 0.6, 1.0) );
     camera->setViewport( new osg::Viewport(0, 0, traits->width, traits->height) );
-    camera->setProjectionMatrixAsPerspective(30.0f, static_cast<double>(traits->width)/static_cast<double>(traits->height), 1.0f, 10000.0f );
-
-    osg::Geode *geode = new osg::Geode();
-    geode_ = geode;
-    pl_ = new ParallelPlane(geode,&db_);
-    pl_->SetAxes(76,92);    //76 = statute, 92 = weight
-
-//    {
-//        osg::Geometry* linesGeom = new osg::Geometry();
-
-//        // this time we'll prealloacte the vertex array to the size we
-//        // need and then simple set them as array elements, 8 points
-//        // makes 4 line segments.
-//        osg::Vec3Array* vertices = new osg::Vec3Array(8);
-//        (*vertices)[0].set(-1.13704, -2.15188e-09, 0.40373);
-//        (*vertices)[1].set(-0.856897, -2.15188e-09, 0.531441);
-//        (*vertices)[2].set(-0.889855, -2.15188e-09, 0.444927);
-//        (*vertices)[3].set(-0.568518, -2.15188e-09, 0.40373);
-//        (*vertices)[4].set(-1.00933, -2.15188e-09, 0.370773);
-//        (*vertices)[5].set(-0.716827, -2.15188e-09, 0.292498);
-//        (*vertices)[6].set(-1.07936, 9.18133e-09, 0.317217);
-//        (*vertices)[7].set(-0.700348, 9.18133e-09, 0.362533);
-
-//        osg::Vec4 color(1.0f,1.0f,0.0f,1.0f);
+    camera->setProjectionMatrixAsPerspective(30.0f, static_cast<double>(traits->width)/static_cast<double>(traits->height), 1.0f, 1000.0f );
 
 
-//        osg::Vec4Array* colors = new osg::Vec4Array(8);
-//        (*colors)[0] = color;
-//        (*colors)[1] = color;
-//        (*colors)[2] = color;
-//        (*colors)[3] = color;
-//        (*colors)[4] = color;
-//        (*colors)[5] = color;
-//        (*colors)[6] = color;
-//        (*colors)[7] = color;
+    //TODO: orthographic camera (osg TrackballManipulator doesn't support ortho zoom so we'll need a custom camera
+    //camera->setProjectionMatrixAsOrtho(0.0f, 100,0.0f,100, 1.0f, 10000.0f );
 
-//         linesGeom->setColorArray(colors, osg::Array::BIND_PER_VERTEX);
-//        // pass the created vertex array to the points geometry object.
-//        linesGeom->setVertexArray(vertices);
-
-//        // set the colors as before, plus using the aobve
-////        osg::Vec4Array* colors = new osg::Vec4Array;
-////        colors->push_back(osg::Vec4(1.0f,1.0f,0.0f,1.0f));
-////        linesGeom->setColorArray(colors);
-////        linesGeom->setColorBinding(osg::Geometry::BIND_OVERALL);
-
-
-//        // set the normal in the same way color.
-////        osg::Vec3Array* normals = new osg::Vec3Array;
-////        normals->push_back(osg::Vec3(0.0f,-1.0f,0.0f));
-//        //linesGeom->setNormalArray(normals);
-//        //linesGeom->setNormalBinding(osg::Geometry::BIND_OVERALL);
-
-
-//        // This time we simply use primitive, and hardwire the number of coords to use
-//        // since we know up front,
-//        linesGeom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES,0,8));
-//        osg::StateSet* stateset = new osg::StateSet;
-//       osg::LineWidth* linewidth = new osg::LineWidth();
-//       linewidth->setWidth(4.0f);
-//       stateset->setAttributeAndModes(linewidth,osg::StateAttribute::ON);
-//       stateset->setMode(GL_LIGHTING,osg::StateAttribute::OFF);
-//           linesGeom->setStateSet(stateset);
-//        //        osg::LineWidth* linewidth = new osg::LineWidth();
-////        linewidth->setWidth(4.0f);
-////        linesGeom->getOrCreateStateSet()->setAttributeAndModes(linewidth,
-////        osg::StateAttribute::ON);
-
-//        // add the points geomtry to the geode.
-//        geode->addDrawable(linesGeom);
-//    }
-    view->setSceneData(geode);
-   // view->setSceneData( scene );
+    view->setSceneData(parent_transform_);
     view->addEventHandler( new osgViewer::StatsHandler );
     view->setCameraManipulator( new osgGA::TrackballManipulator );
 
     return gw->getGLWidget();
 }
 
+void MainWindow::testBarChartDemo(QCustomPlot *customPlot)
+{
+  // create empty bar chart objects:
+  QCPBars *coverage = new QCPBars(customPlot->xAxis, customPlot->yAxis);
+  QCPBars *protection = new QCPBars(customPlot->xAxis, customPlot->yAxis);
+  customPlot->addPlottable(coverage);
+  customPlot->addPlottable(protection);
+  // set names and colors:
+  QPen pen;
+  pen.setWidthF(1.2);
+  protection->setName("Protection");
+  pen.setColor(QColor(1, 92, 191));
+  protection->setPen(pen);
+  protection->setBrush(QColor(1, 92, 191, 50));
+  coverage->setName("Coverage");
+  pen.setColor(QColor(150, 222, 0));
+  coverage->setPen(pen);
+  coverage->setBrush(QColor(150, 222, 0, 70));
+  // stack bars ontop of each other:
+  coverage->moveAbove(protection);
+
+  // prepare x axis with country labels:
+  QVector<double> ticks;
+  QVector<QString> labels;
+  ticks << 1 << 2 << 3 << 4 << 5 << 6 << 7;
+  labels << "Head" << "Torso" << "Arms" << "Legs" << "Hands" << "Feet";
+  customPlot->xAxis->setAutoTicks(false);
+  customPlot->xAxis->setAutoTickLabels(false);
+  customPlot->xAxis->setTickVector(ticks);
+  customPlot->xAxis->setTickVectorLabels(labels);
+  customPlot->xAxis->setTickLabelRotation(60);
+  customPlot->xAxis->setSubTickCount(0);
+  customPlot->xAxis->setTickLength(0, 4);
+  customPlot->xAxis->grid()->setVisible(true);
+  customPlot->xAxis->setRange(0, 8);
+
+  // prepare y axis:
+  customPlot->yAxis->setRange(0, 12.1);
+  customPlot->yAxis->setPadding(5); // a bit more space to the left border
+  customPlot->yAxis->setLabel("Percent of max");
+  customPlot->yAxis->grid()->setSubGridVisible(true);
+  QPen gridPen;
+  gridPen.setStyle(Qt::SolidLine);
+  gridPen.setColor(QColor(0, 0, 0, 25));
+  customPlot->yAxis->grid()->setPen(gridPen);
+  gridPen.setStyle(Qt::DotLine);
+  customPlot->yAxis->grid()->setSubGridPen(gridPen);
+
+  // Add data:
+  QVector<double> protectionData, coverageData;
+  protectionData << 0.68*10.5 << 0.62*5.5 << 0.82*5.5 << 0.50*5.8 << 0.59*5.2 << 0.00*4.2 << 0.37*11.2;
+  coverageData   << 0.06*10.5 << 0.05*5.5 << 0.04*5.5 << 0.06*5.8 << 0.02*5.2 << 0.07*4.2 << 0.25*11.2;
+  protection->setData(ticks, protectionData);
+  coverage->setData(ticks, coverageData);
+
+  // setup legend:
+  customPlot->legend->setVisible(true);
+  customPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignTop|Qt::AlignHCenter);
+  customPlot->legend->setBrush(QColor(255, 255, 255, 200));
+  QPen legendPen;
+  legendPen.setColor(QColor(130, 130, 130, 200));
+  customPlot->legend->setBorderPen(legendPen);
+  QFont legendFont = font();
+  legendFont.setPointSize(10);
+  customPlot->legend->setFont(legendFont);
+  customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+}
 osgQt::GraphicsWindowQt* MainWindow::createGraphicsWindow( int x, int y, int w, int h, const std::string& name, bool windowDecoration )
 {
     osg::DisplaySettings* ds = osg::DisplaySettings::instance().get();

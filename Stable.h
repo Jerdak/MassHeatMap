@@ -17,16 +17,20 @@
     #include <limits>
     #include <algorithm>
 
-#include <osg/Array>
+    #include <osg/Array>
     #include <osg/Point>
     #include <osg/Geometry>
     #include <osg/Image>
+    #include <osg/MatrixTransform>
     #include <osg/TextureRectangle>
     #include <osgViewer/CompositeViewer>
     #include <osgViewer/ViewerEventHandlers>
     #include <osgGA/TrackballManipulator>
     #include <osgDB/ReadFile>
     #include <osgQt/GraphicsWindowQt>
+
+    #undef min
+    #undef max
 #endif //__cplusplus
 
 #endif // STABLE_H
