@@ -4,19 +4,23 @@
 
 #include <iostream>
 #include <osg/LineWidth>
+#include <osg/Node>
+#include <QTimer>
 #include "Database.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    //db_.LoadData("test_nominal_scrub.csv");
-
     parent_transform_ = new osg::MatrixTransform();
-    plane_manager_ = std::move(std::unique_ptr<ParallelPlaneManager>(new ParallelPlaneManager(parent_transform_)));
+
+    plane_manager_ = std::move(std::unique_ptr<ParallelPlaneManager>(new ParallelPlaneManager(parent_transform_,5,1)));
+    mesh_ = std::move(std::unique_ptr<DrawableMesh>(new DrawableMesh(plane_manager_->get_database())));
+    mesh_->Load("male_apose_closed.ply");
+    connect(plane_manager_.get(),SIGNAL(ActiveSubjectsChanged()),mesh_.get(),SLOT(requestWork()));
 
     QWidget* widget1 = addParallelPlaneWidget( createGraphicsWindow(0,0,100,100) );
-    QWidget* widget2 = addModellerWidget( createGraphicsWindow(0,0,100,100), osgDB::readNodeFile("brain.ply") );
+    QWidget* widget2 = addModellerWidget( createGraphicsWindow(0,0,100,100), mesh_->get_node() );
     setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
 
     // disable the default setting of viewer.done() by pressing Escape.
@@ -27,17 +31,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->gridLayout_2->addWidget(widget2,0,0);
     ui->statusBar->showMessage("Building planes");
 
-    plane_manager_->AddNewPlane(76,92);
-    plane_manager_->AddNewPlane(3,15);
-    plane_manager_->AddNewPlane(67,83);
-    ui->statusBar->showMessage("Respacing");
+    plane_manager_->AddNewPlane(0,1);
+    plane_manager_->AddNewPlane(2,3);
+    plane_manager_->AddNewPlane(95,96);
+    plane_manager_->AddNewPlane(97,98,true);
+    plane_manager_->Redraw();
 
-    plane_manager_->BuildSpacing(5,1);
-    ui->statusBar->showMessage("Drawing points");
-
-    TestDrawPoints(0);
-    TestDrawPoints(1);
-
+    //QTimer::singleShot(10,plane_manager_.get(),SLOT(Redraw()));
+    plane_manager_->get_plane(0)->SetFilter(osg::Vec3f(0.20,0.75,0.0),0.15);
+    QTimer::singleShot(2000,plane_manager_.get(),SLOT(Redraw()));
 
     ui->statusBar->showMessage("Scene Render Complete.");
     testBarChartDemo(ui->plotWidget);
@@ -52,84 +54,6 @@ MainWindow::~MainWindow()
 }
 void MainWindow::close(){
    QApplication::quit();
-}
-
-void MainWindow::TestDrawPoints(const size_t& idx){
-    //TODO:  Right now points/lines are drawn relative
-    //to the geode that created them (ie: local coordinates)
-    //This makes it a challenge to draw lines correctly
-    //because the endpoint will be offset by the parallel plane's
-    //position.  EIther we need to subject the current plane's transform
-    //from the end point or points/lines shouldn't be drawn in local coordinates
-
-    ParallelPlane *pl = plane_manager_->get_plane(idx);
-    ParallelPlane *pl2 = plane_manager_->get_plane(idx+1);
-
-    Database *db = plane_manager_->get_database();
-    osg::Geode *geode = pl->get_geode();
-    osg::Geode *geode2 = pl2->get_geode();
-
-    {
-        // create Geometry object to store all the vertices and points primitive.
-        osg::Geometry* pointsGeom = new osg::Geometry();
-
-        // create a Vec3Array and add to it all my coordinates.
-        // Like all the *Array variants (see include/osg/Array) , Vec3Array is derived from both osg::Array
-        // and std::vector<>.  osg::Array's are reference counted and hence sharable,
-        // which std::vector<> provides all the convenience, flexibility and robustness
-        // of the most popular of all STL containers.
-        osg::Vec3Array* vertices = new osg::Vec3Array;
-
-        for(int i = 0; i < db->NumRows(); i++){
-            vertices->push_back(pl->Domain(i));
-        }
-        // pass the created vertex array to the points geometry object.
-        pointsGeom->setVertexArray(vertices);
-
-        osg::Vec4Array* colors = new osg::Vec4Array;
-        for(int i = 0; i < db->NumRows(); i++){
-            colors->push_back(pl->Color(i));
-        }
-        pointsGeom->setColorArray(colors, osg::Array::BIND_PER_VERTEX);
-
-        osg::StateSet* stateset = new osg::StateSet;
-        stateset->setAttributeAndModes(new osg::Point(3.0f),osg::StateAttribute::ON);
-        stateset->setMode(GL_LIGHTING,osg::StateAttribute::OFF);
-        pointsGeom->setStateSet(stateset);
-        pointsGeom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::POINTS,0,vertices->size()));
-
-        // add the points geometry to the geode.
-        geode->addDrawable(pointsGeom);
-    }
-    {
-        osg::Geometry* linesGeom = new osg::Geometry();
-        osg::Vec3Array* vertices = new osg::Vec3Array();
-        for(int i = 0; i < db->NumRows(); i++){
-            vertices->push_back(pl->Domain(i));
-            vertices->push_back(pl2->ReverseDomain(i));
-        }
-
-        osg::Vec4Array* colors = new osg::Vec4Array();
-        for(int i = 0; i < db->NumRows(); i++){
-            colors->push_back(pl->Color(i));
-            colors->push_back(pl->Color(i));
-        }
-
-        linesGeom->setColorArray(colors, osg::Array::BIND_PER_VERTEX);
-        linesGeom->setVertexArray(vertices);
-
-        linesGeom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES,0,vertices->getNumElements()));
-
-        osg::StateSet* stateset = new osg::StateSet;
-        osg::LineWidth* linewidth = new osg::LineWidth();
-        linewidth->setWidth(4.0f);
-        stateset->setAttributeAndModes(linewidth,osg::StateAttribute::ON);
-        stateset->setMode(GL_LIGHTING,osg::StateAttribute::OFF);
-        linesGeom->setStateSet(stateset);
-
-        // add the points geomtry to the geode.
-        geode->addDrawable(linesGeom);
-    }
 }
 
 QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
@@ -156,11 +80,11 @@ QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
 
     return gw->getGLWidget();
 }
-QWidget* MainWindow::addModellerWidget( osgQt::GraphicsWindowQt* gw, osg::Node* scene)
+
+QWidget* MainWindow::addModellerWidget( osgQt::GraphicsWindowQt* gw, osg::ref_ptr<osg::Node> scene)
 {
     osgViewer::View* view = new osgViewer::View;
     addView( view );
-
     osg::Camera* camera = view->getCamera();
     camera->setGraphicsContext( gw );
 

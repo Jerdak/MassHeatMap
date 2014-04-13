@@ -4,13 +4,13 @@
 #include <osg/MatrixTransform>
 
 osg::Geometry* ParallelPlane::myCreateTexturedQuadGeometry(
-        const osg::Vec3& pos,
-        float width,
-        float height,
-        osg::Image* image,
-        bool useTextureRectangle,
-        bool xyPlane,
-        bool option_flip)
+        const osg::Vec3& pos,       //Position of textured quads
+        float width,                //Width of textured quads (not image width)
+        float height,               //Height of textured quads (not image height)
+        osg::Image* image,          //Textured quad image
+        bool useTextureRectangle,   //Use texture rectangle which allows for asymmetric texture
+        bool xyPlane,               //Render textured quads along x/y axes
+        bool option_flip)           //Flip raw image
 {
     bool flip = image->getOrigin()==osg::Image::TOP_LEFT;
     if (option_flip) flip = !flip;
@@ -59,13 +59,16 @@ void ParallelPlane::SetPosition(osg::Vec3f pos){
     t.makeTranslate(pos);
 
     osg::Matrix m = transform_->getMatrix();
+    m.setTrans(osg::Vec3f(0,0,0));  //remove old translation but leave rotation intact
     transform_->setMatrix(m*t);
 }
 
 ParallelPlane::ParallelPlane(osg::Geode *geode,osg::MatrixTransform *transform,Database *db):
     geode_(geode),
     db_(db),
-    transform_(transform)
+    transform_(transform),
+    filter_radius_(-1.0f),
+    filter_position_(osg::Vec3f(0,0,0))
 {
     image_ = osgDB::readImageFile("gradient2.bmp");
     osg::ref_ptr<osg::Drawable> drawable = myCreateTexturedQuadGeometry(osg::Vec3(0,0,0),1,1,image_,false,true,false);
@@ -82,19 +85,17 @@ ParallelPlane::ParallelPlane(osg::Geode *geode,osg::MatrixTransform *transform,D
 
 
 osg::Vec3f ParallelPlane::Domain(const int& row){
-
-    osg::Matrix m = transform_->getMatrix();
-
     float data[2];
 
     // get data for row[datum][axes_[0] and row[datum][axes_[1]]
     data[0] = (*db_)(row,axes_[0]);
     data[1] = (*db_)(row,axes_[1]);
 
+    // normalize
     osg::Vec3f ret(
         (data[0] - db_->Min(axes_[0]))/(db_->Max(axes_[0])-db_->Min(axes_[0])),     //x
         (data[1] - db_->Min(axes_[1]))/(db_->Max(axes_[1])-db_->Min(axes_[1])),     //y
-        0.0f                                                                       //z
+        0.0f                                                                        //z, OSG treats Z as up.
     );
 
     return ret;
@@ -131,6 +132,25 @@ void ParallelPlane::SetAxes(const size_t& axis0, const size_t& axis1){
     axes_[1] = axis1;
 }
 
+void ParallelPlane::SetFilter(const osg::Vec3f& p, const float& radius){
+    filter_radius_ = radius;
+    filter_position_ = p;
+
+    emit filterChanged();
+}
+
 osg::Vec3f ParallelPlane::GetLocalPosition(){
     return osg::Vec3f(0,0,0);
+}
+
+
+bool ParallelPlane::InRange(const int& row){
+    return InFilter(row);
+}
+
+bool ParallelPlane::InFilter(const int& row){
+    if(filter_radius_ < 0)return true;  //hacky way to avoid having another flag
+
+    osg::Vec3f tmp = Domain(row) - filter_position_;
+    return tmp.length() <= filter_radius_;
 }

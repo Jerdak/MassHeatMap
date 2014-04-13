@@ -11,15 +11,23 @@ public:
     typedef std::vector<DataRow> Data;
 
     Database();
+    Database(const Database& db);
     ~Database(){}
 
     void dbgData(const int& size=-1);
+    void dbgVerifyIntegrity();
 
     void BuildMetrics();
 
     void AppendRow(const QStringList& tokens);
+    void AppendCoverageRow(const QStringList& tokens);
+
+    void FilterByCoverage();
+
     void SetHeader(const QStringList& tokens);
 
+    bool LoadCoveragePack(const QString& file_name);
+    void PackCoverageData();
     bool LoadData(const QString& file_name);
     bool SaveData(const QString& file_name);
 
@@ -29,18 +37,36 @@ public:
     void Clear();
     bool Empty();
 
-    size_t NumColumns();
-    size_t NumRows() ;
+    size_t NumColumns() const;
+    size_t NumRows() const;
+
+    size_t NumPackColumns() const;
+    size_t NumPackRows() const;
 
     float operator()(const int&r, const int& c){return data_[r][c];}
-    const Data& get_data(){return data_;}
+    void operator=(const Database& db);
+
+    const Data& get_data()const{return data_;}
+    const float* get_coverage_data()const{return coverage_data_packed_;}
+
+    void set_active_subjects(std::vector<int> active_subjects){active_subjects_ = active_subjects;}
+
+    std::vector<int> get_active_subjects() { return active_subjects_;}
+
 private:
     Data data_;
-    HeaderRow header_row_;
+    Data coverage_data_;
 
+    std::vector<int> subjects_data_;
+    std::vector<int> subjects_coverage_data_;
+
+    HeaderRow header_row_;
+    float* coverage_data_packed_;
+    int coverage_data_size_;
     std::vector<float> min_;
     std::vector<float> max_;
     std::vector<float> average_;
+    std::vector<int> active_subjects_;
 };
 
 #endif // DATABASE_H
