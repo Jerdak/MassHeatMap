@@ -1,7 +1,7 @@
 #include "ParallelPlaneManager.h"
 #include "PrincipalComponentAnalyzer.h"
 #include <Qobject>
-
+#include <QSettings>
 #include <osg/Node>
 #include <osg/MatrixTransform>
 #include <osg/Geode>
@@ -10,8 +10,12 @@
 ParallelPlaneManager::ParallelPlaneManager(osg::ref_ptr<osg::Node> root_node):
     root_node_(root_node)
 {
-   // LoadDatabase("test_nominal_scrub.csv"); //TODO:  remove hardcoded database data
-    LoadDatabase("pca.csv","./coverage_data/pack_test.csv");
+    QSettings settings("massheatmap.ini",QSettings::IniFormat);
+
+    QString pcaFileName = settings.value("pca_file","pca.csv").toString();
+    QString covFileName = settings.value("coverage_file","./coverage_data/pack_test.csv").toString();
+
+    LoadDatabase(pcaFileName,covFileName);
     InitializeSceneGraph();
 
 //    PrincipalComponentAnalyzer pca;
@@ -25,7 +29,11 @@ ParallelPlaneManager::ParallelPlaneManager(osg::ref_ptr<osg::Node> root_node,con
     width_(width),
     height_(height)
 {
-    LoadDatabase("pca.csv","./coverage_data/pack_test.csv");
+    QSettings settings("massheatmap.ini",QSettings::IniFormat);
+    QString pcaFileName = settings.value("pca_file","pca.csv").toString();
+    QString covFileName = settings.value("coverage_file","./coverage_data/pack_test.csv").toString();
+
+    LoadDatabase(pcaFileName,covFileName);
     InitializeSceneGraph();
 }
 

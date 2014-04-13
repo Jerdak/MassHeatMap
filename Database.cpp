@@ -198,7 +198,19 @@ void Database::PackCoverageData(){
 
     coverage_data_size_ = rows * cols;
     coverage_data_packed_ = new float[coverage_data_size_];
-    for(int r = 0; r < rows; ++r){
+    int idx = 0;
+    for(int c = 0; c < cols; ++c){
+        for(int r = 0; r <rows;++r){
+            idx = c * rows + r;
+            coverage_data_packed_[idx] = coverage_data_[r][c];
+        }
+    }
+    printf("packed[0]: ");
+    for(int i = 0; i < 20; i++){
+        printf("%f ",coverage_data_packed_[i]);
+    }
+    printf("\n");
+    /*for(int r = 0; r < rows; ++r){
         for(int c = 0; c <cols;++c){
             int idx = r * cols + c;
             coverage_data_packed_[idx] = coverage_data_[r][c];
@@ -208,7 +220,7 @@ void Database::PackCoverageData(){
     for(int i = 0; i < cols; i++){
         printf("%f ",coverage_data_packed_[i]);
     }
-    printf("\n");
+    printf("\n");*/
 }
 
 bool Database::LoadCoveragePack(const QString& file_name){

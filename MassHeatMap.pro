@@ -100,11 +100,11 @@ DEPENDPATH += $$PWD/../../Libraries/opencv/build/x86/vc10
 #    QMAKE_EXTRA_COMPILERS += cuda
 #}
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../CudaTest/release/ -lCudaTest
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../CudaTest/debug/ -lCudaTest
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/Dependencies/CudaTest/release/ -lCudaTest
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/Dependencies/CudaTest/debug/ -lCudaTest
 
-INCLUDEPATH += $$PWD/../CudaTest
-DEPENDPATH += $$PWD/../CudaTest
+INCLUDEPATH += $$PWD/Dependencies/CudaTest
+DEPENDPATH += $$PWD/Dependencies/CudaTest
 
 win32:CONFIG(release, debug|release): LIBS += -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v5.5/lib/Win32/" -lcudart
 else:win32:CONFIG(debug, debug|release): LIBS += -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v5.5/lib/Win32/" -lcudart

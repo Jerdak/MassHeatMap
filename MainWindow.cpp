@@ -37,10 +37,6 @@ MainWindow::MainWindow(QWidget *parent) :
     plane_manager_->AddNewPlane(97,98,true);
     plane_manager_->Redraw();
 
-    //QTimer::singleShot(10,plane_manager_.get(),SLOT(Redraw()));
-    plane_manager_->get_plane(0)->SetFilter(osg::Vec3f(0.20,0.75,0.0),0.15);
-    QTimer::singleShot(2000,plane_manager_.get(),SLOT(Redraw()));
-
     ui->statusBar->showMessage("Scene Render Complete.");
     testBarChartDemo(ui->plotWidget);
     connect( &_timer, SIGNAL(timeout()), this, SLOT(update()) );

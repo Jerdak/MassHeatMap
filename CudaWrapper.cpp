@@ -20,6 +20,12 @@ void CudaWrapper::Reduce(osg::ref_ptr<osg::Vec4Array> colors_,const std::vector<
     const std::vector<int> inactive_subjects;
     //void color_pack(const std::vector<int> indices,const unsigned int& R, const unsigned int& C,float *colors,float *data);
     float *colors = new float[colors_->getNumElements()];
+
+    printf("debug: ");
+    for(int i = 0; i < 20; i++){
+        printf("%f ",data[i]);
+    }
+    printf("\n");
     color_pack(inactive_subjects,R,C,colors,data);
 
     qDebug() << "Color[0]" << colors[0];

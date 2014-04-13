@@ -8,12 +8,12 @@ HeatColor::HeatColor(int rs, int bs, int gs, int re, int be, int ge){
 }
 
 osg::Vec4f HeatColor::GetColor(const float& value){
-    float r = (1.0f-value)*start_[0] + (value)*end_[0];
-    float g = (1.0f-value)*start_[1] + (value)*end_[1];
-    float b = (1.0f-value)*start_[2] + (value)*end_[2];
-    printf("r: %f\n",r);
-    printf("g: %f\n",g);
-    printf("b: %f\n",b);
+    float tmp = std::max(0.0f,std::min(value,1.0f));    // make sure to clamp to [0,1]
+
+    float r = (1.0f-tmp)*start_[0] + (tmp)*end_[0];
+    float g = (1.0f-tmp)*start_[1] + (tmp)*end_[1];
+    float b = (1.0f-tmp)*start_[2] + (tmp)*end_[2];
+
     return osg::Vec4f(r,g,b,1.0f);
 }
 
@@ -23,6 +23,7 @@ HeatColor::HeatColor(QString start, QString end){
 }
 void HeatColor::SetStart(QString start){
     QString tmp = start.toLower();
+
     int r = QStringRef(&tmp,0,2).toString().toUInt(0,16);
     int g = QStringRef(&tmp,2,2).toString().toUInt(0,16);
     int b = QStringRef(&tmp,4,2).toString().toUInt(0,16);
