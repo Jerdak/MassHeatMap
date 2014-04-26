@@ -8,7 +8,8 @@
 namespace Ui {
     class MainWindow;
 }
-
+class OptionWindow;
+class DrawWindow;
 class MainWindow : public QMainWindow, public osgViewer::CompositeViewer
 {
     Q_OBJECT
@@ -33,7 +34,8 @@ private:
     std::unique_ptr<DrawableMesh> mesh_;
     std::unique_ptr<ParallelPlaneManager> plane_manager_;
     osg::MatrixTransform *parent_transform_;
-
+    OptionWindow *option_window_;
+    DrawWindow *draw_window_;
 private slots:
     void close();
 };

@@ -1,54 +1,94 @@
 #include "CudaWrapper.h"
+#include "HeatColor.h"
+
 #include <CudaTest/CudaKernel.hpp>
 #include <QElapsedTimer>
 #include <QColor>
-CudaWrapper::CudaWrapper()
-{
-    //cuda_main(PINNED);
-
-    //replace direct CUDA calls with calls to Thrust (impl'd as TBB right now)
-
-}
 #include <QLinearGradient>
+#include <QSettings>
 
-#include "HeatColor.h"
-void CudaWrapper::Reduce(osg::ref_ptr<osg::Vec4Array> colors_,const std::vector<int> active_subjects,const unsigned int& R, const unsigned int&C,const float *data,int size){
+
+CudaWrapper::CudaWrapper():
+    valid_data_thresh_(0.01f)
+{
+    QSettings settings("massheatmap.ini",QSettings::IniFormat);
+    valid_data_thresh_ = settings.value("valid_data_threshold","0.05").toFloat();
+}
+
+void CudaWrapper::NormalizedHistogram(float *colors, const int& color_size, int lookup[CUDA_HISTOGRAM_BINS], float &minc, float &maxc){
+    Metrics(colors,color_size,minc,maxc);
+    int valid_size = 0;
+    float hist[CUDA_HISTOGRAM_BINS];
+
+    memset(hist,0.0f,sizeof(float)*CUDA_HISTOGRAM_BINS);
+
+    for(int c = 0; c < color_size; ++c){
+        float normalized_value = (colors[c]-minc)/(maxc-minc);
+
+        // count # of colors contributing to histogram
+        if(validColor(normalized_value))valid_size+=1;
+    }
+
+    {   // build histogram of cumulative probabilities
+        float step = 1.0f / (float)valid_size;
+        for(int c = 0; c < color_size; ++c){
+            float normalized_value = (colors[c]-minc)/(maxc-minc);
+            int bin = normalized_value * (CUDA_HISTOGRAM_BINS-1);
+            bin = std::max(0, std::min(bin, CUDA_HISTOGRAM_BINS-1));    //clamp [0,CUDA_HISTOGRAM_BINS-1]
+
+            // make sure to only bin valid data
+            if(validColor(normalized_value)) hist[bin] += step;
+        }
+    }
+    {   // build a lookup table in range [0,CUDA_HISTOGRAM_BINS]
+        float total = 0.0f;
+        for(int i = 0; i < CUDA_HISTOGRAM_BINS; i++){
+            total += hist[i];
+            lookup[i] =  total * (float)(CUDA_HISTOGRAM_BINS - 1.0f) + 0.5f;
+        }
+    }
+}
+void CudaWrapper::Metrics(float *colors, const int& color_size, float &minc, float &maxc){
+    for(int c = 1; c < color_size; ++c){
+        minc = std::min(colors[c],minc);
+        maxc = std::max(colors[c],maxc);
+    }
+}
+
+bool CudaWrapper::validColor(const float& f){
+    return (f > valid_data_thresh_);
+}
+
+void CudaWrapper::Reduce(osg::ref_ptr<osg::Vec4Array> colors_,const std::vector<int>& inactive_subjects,const unsigned int& R, const unsigned int&C,const float *data,int size){
     if(R != colors_->getNumElements()){
         qDebug() << QString("[ERROR] - Reduction color array size must match row count").arg(QString::number(R),QString::number(colors_->getNumElements()));
         return;
     }
-    const std::vector<int> inactive_subjects;
-    //void color_pack(const std::vector<int> indices,const unsigned int& R, const unsigned int& C,float *colors,float *data);
+    float minc,maxc;
     float *colors = new float[colors_->getNumElements()];
+    int lookup[CUDA_HISTOGRAM_BINS];
 
-    printf("debug: ");
-    for(int i = 0; i < 20; i++){
-        printf("%f ",data[i]);
-    }
-    printf("\n");
+    // Call CUDA
     color_pack(inactive_subjects,R,C,colors,data);
 
-    qDebug() << "Color[0]" << colors[0];
-    float minc = colors[0];
-    float maxc = colors[0];
-    for(int c = 1; c < colors_->getNumElements(); ++c){
-        minc = std::min(colors[c],minc);
+    // Generate a normalization histogram
+    NormalizedHistogram(colors,colors_->getNumElements(),lookup,minc,maxc);
 
-        if(maxc < 1.0)
-        maxc = std::max(colors[c],maxc);
-    }
-
-     //colorbrewer2 single hue gradient.  #fcfbfd(whitish) -> #3f007d(dark purple)
+    //Colorbrewer2 single hue gradient.  #fcfbfd(whitish) -> #3f007d(dark purple)
     HeatColor gradient_hue("fcfbfd","3f007d");
 
     for(int c = 0; c < colors_->getNumElements(); ++c){
-        float value = (colors[c]-minc)/(maxc-minc);/// temp_scalar;//(26.0f * 1.5f);
-        value = std::max(0.0f, std::min(value, 1.0f));
+        float normalized_value = (colors[c]-minc)/(maxc-minc);      //color value in [0,1]
+        int bin = normalized_value * (CUDA_HISTOGRAM_BINS-1);       //bin in         [0,CUDA_HISTOGRAM_BINS-1]
+        bin = std::max(0, std::min(bin, CUDA_HISTOGRAM_BINS-1));    //clamp bin to   [0,CUDA_HISTOGRAM_BINS-1]
 
-        if(value < 0.05)
-            (*colors_)[c] = osg::Vec4f(0.5f,0.5f,0.5f,1.0f);
+        float delta = lookup[bin] / (float)CUDA_HISTOGRAM_BINS;     //delta value in [0,1]
+
+        // For valid colors: Linearly interpolate between end points of gradient_hue.
+        if(validColor(normalized_value))
+            (*colors_)[c] = gradient_hue.GetColor(delta);
         else
-            (*colors_)[c] = gradient_hue.GetColor(value);   //TODO:  hardcoded normalization based on 26 subjects with a per cell max of 1.5
+            (*colors_)[c] = osg::Vec4f(0.5f,0.5f,0.5f,1.0f);
     }
     delete [] colors;
 }

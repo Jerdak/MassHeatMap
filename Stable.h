@@ -10,6 +10,8 @@
     #include <QString>
     #include <QStringList>
     #include <QDebug>
+    #include <QMutex>
+    #include <QMutexLocker>
 
     #include <map>
     #include <vector>
@@ -28,7 +30,13 @@
     #include <osgGA/TrackballManipulator>
     #include <osgDB/ReadFile>
     #include <osgQt/GraphicsWindowQt>
+    #include <osg/ShapeDrawable>
+    #include <osg/Sequence>
+    #include <osg/PolygonMode>
+    #include <osg/io_utils>
 
+    #include <osgText/Font>
+    #include <osgText/Text>
     #undef min
     #undef max
 #endif //__cplusplus

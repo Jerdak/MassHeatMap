@@ -8,7 +8,8 @@
 #include <osg/Geometry>
 #include <osg/LineWidth>
 ParallelPlaneManager::ParallelPlaneManager(osg::ref_ptr<osg::Node> root_node):
-    root_node_(root_node)
+    root_node_(root_node),
+    data_mutex_(QMutex::Recursive)
 {
     QSettings settings("massheatmap.ini",QSettings::IniFormat);
 
@@ -27,7 +28,8 @@ ParallelPlaneManager::ParallelPlaneManager(osg::ref_ptr<osg::Node> root_node):
 ParallelPlaneManager::ParallelPlaneManager(osg::ref_ptr<osg::Node> root_node,const int& width, const int& height):
     root_node_(root_node),
     width_(width),
-    height_(height)
+    height_(height),
+    data_mutex_(QMutex::Recursive)
 {
     QSettings settings("massheatmap.ini",QSettings::IniFormat);
     QString pcaFileName = settings.value("pca_file","pca.csv").toString();
@@ -46,7 +48,7 @@ void ParallelPlaneManager::InitializeSceneGraph(){
     geode_ = new osg::Geode();
 
     osg::StateSet* stateset = new osg::StateSet;
-    stateset->setAttributeAndModes(new osg::Point(3.0f),osg::StateAttribute::ON);
+    stateset->setAttributeAndModes(new osg::Point(4.0f),osg::StateAttribute::ON);
     stateset->setMode(GL_LIGHTING,osg::StateAttribute::OFF);
 
     osg::ref_ptr<osg::Geometry> pointGeom = new osg::Geometry();
@@ -67,25 +69,18 @@ void ParallelPlaneManager::InitializeSceneGraph(){
     geode_->addDrawable(lineGeom);
 
     root_node_->asTransform()->asMatrixTransform()->addChild(geode_);
-
-
 }
 
 
 void ParallelPlaneManager::RedrawPoints(const int& index, osg::Vec3Array* vertices,osg::Vec4Array* colors){
     ParallelPlane *pl = planes_[index].get();
 
-    vertices->push_back(osg::Vec3f(0,0,0));
-    vertices->push_back(osg::Vec3f(1,0,0));
-    vertices->push_back(osg::Vec3f(0,1,0));
 
-    colors->push_back(osg::Vec4f(1,0,0,1));
-    colors->push_back(osg::Vec4f(0,1,0,1));
-    colors->push_back(osg::Vec4f(0,0,1,1));
 
     for(auto subject = active_subjects_.begin(); subject != active_subjects_.end(); ++subject){
-        vertices->push_back(pl->ReverseDomain((*subject)));
-        colors->push_back(pl->Color((*subject)));
+        vertices->push_back(pl->ReverseDomain((*subject))+osg::Vec3(0,0.0,0.01));
+        vertices->push_back(pl->ReverseDomain((*subject))-osg::Vec3(0,0.0,0.01));
+        colors->push_back(osg::Vec4f(0.9,0.9,0.9,1.0));//pl->Color((*subject)));
     }
 }
 
@@ -113,7 +108,13 @@ void ParallelPlaneManager::Redraw(){
     {   //redraw points
         osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array();
         osg::ref_ptr<osg::Vec4Array> colors = new osg::Vec4Array();
+        vertices->push_back(osg::Vec3f(0,0,0)); //origin
+        vertices->push_back(osg::Vec3f(0,1,0)); //y+
+        vertices->push_back(osg::Vec3f(1,0,0)); //x+
 
+        colors->push_back(osg::Vec4f(1,0,0,1));
+        colors->push_back(osg::Vec4f(0,1,0,1));
+        colors->push_back(osg::Vec4f(0,0,1,1));
         for(int p = 0; p < planes_.size(); ++p){
             RedrawPoints(p,vertices,colors);
         }
@@ -161,6 +162,7 @@ void ParallelPlaneManager::dbgDatabaseLoad(){
 }
 
 void ParallelPlaneManager::LoadDatabase(const QString& database_name,const QString& pack_name){
+    QMutexLocker locker(&data_mutex_);
     db_.Clear();
     db_.LoadData(database_name);
     db_.LoadCoveragePack(pack_name);
@@ -169,6 +171,8 @@ void ParallelPlaneManager::LoadDatabase(const QString& database_name,const QStri
 }
 
 void ParallelPlaneManager::AddNewPlane(const int &axis0, const int &axis1, const bool& rebuild){
+    QMutexLocker locker(&data_mutex_);
+
     osg::ref_ptr<osg::Geode> geode = new osg::Geode();
     osg::ref_ptr<osg::MatrixTransform> transform = new osg::MatrixTransform();
 
@@ -188,6 +192,7 @@ void ParallelPlaneManager::AddNewPlane(const int &axis0, const int &axis1, const
 }
 
 void ParallelPlaneManager::BuildSpacing(){
+    QMutexLocker locker(&data_mutex_);
     float step = width_/(float)planes_.size();
     float offset = 0;
     for(int i = 0; i < planes_.size(); ++i){
@@ -196,20 +201,27 @@ void ParallelPlaneManager::BuildSpacing(){
     }
 }
 
+std::vector<int> ParallelPlaneManager::get_active_subjects(){
+    QMutexLocker locker(&data_mutex_);
+    return active_subjects_;
+}
 void ParallelPlaneManager::UpdateActiveSubjects(){
-    active_subjects_.clear();
-
-    for(int i = 0; i < db_.NumRows(); i++){
-        bool active = true;
-        for(int p = 0; p < planes_.size(); ++p){
-            if(!planes_[p]->InRange(i)){
-                active = false;
-                break;
+    {
+        QMutexLocker locker(&data_mutex_);
+        active_subjects_.clear();
+        inactive_subjects_.clear();
+        for(int i = 0; i < db_.NumRows(); i++){
+            bool active = true;
+            for(int p = 0; p < planes_.size(); ++p){
+                if(!planes_[p]->InRange(i)){
+                    active = false;
+                    inactive_subjects_.push_back(i);
+                    break;
+                }
             }
+            if(active)active_subjects_.push_back(i);
         }
-        if(active)active_subjects_.push_back(i);
+        db_.set_inactive_subjects(inactive_subjects_);
     }
-    db_.set_active_subjects(active_subjects_);
-    qDebug() << "Active subject list updated";
     emit ActiveSubjectsChanged();
 }

@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
-
+#include "OptionWindow.h"
+#include "DrawWindow.h"
 
 #include <iostream>
 #include <osg/LineWidth>
@@ -31,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->gridLayout_2->addWidget(widget2,0,0);
     ui->statusBar->showMessage("Building planes");
 
-    plane_manager_->AddNewPlane(0,1);
+    plane_manager_->AddNewPlane(0,1,true);
     plane_manager_->AddNewPlane(2,3);
     plane_manager_->AddNewPlane(95,96);
     plane_manager_->AddNewPlane(97,98,true);
@@ -41,6 +42,12 @@ MainWindow::MainWindow(QWidget *parent) :
     testBarChartDemo(ui->plotWidget);
     connect( &_timer, SIGNAL(timeout()), this, SLOT(update()) );
     connect(ui->actionClose,SIGNAL(triggered()),this,SLOT(close()));
+
+   // option_window_ = new OptionWindow(plane_manager_.get(),this);
+    //option_window_->show();
+
+    draw_window_ = new DrawWindow(plane_manager_.get(),this);
+    draw_window_->show();
     _timer.start( 10 );
 }
 

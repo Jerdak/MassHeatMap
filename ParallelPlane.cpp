@@ -2,6 +2,8 @@
 #include <osg/Node>
 #include <osg/Matrix>
 #include <osg/MatrixTransform>
+#include <QSettings>
+#include <QString>
 
 osg::Geometry* ParallelPlane::myCreateTexturedQuadGeometry(
         const osg::Vec3& pos,       //Position of textured quads
@@ -46,7 +48,10 @@ osg::Geometry* ParallelPlane::myCreateTexturedQuadGeometry(
         texture->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE);
         texture->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP_TO_EDGE);
 
+        osg::StateSet* stateset = new osg::StateSet;
+       // stateset->setMode(GL_LIGHTING,osg::StateAttribute::OFF);
 
+        pictureQuad->setStateSet(stateset);
         pictureQuad->getOrCreateStateSet()->setTextureAttributeAndModes(0,
                     texture,
                     osg::StateAttribute::ON);
@@ -54,6 +59,54 @@ osg::Geometry* ParallelPlane::myCreateTexturedQuadGeometry(
         return pictureQuad;
     }
 }
+
+
+ParallelPlane::ParallelPlane(osg::Geode *geode,osg::MatrixTransform *transform,Database *db):
+    geode_(geode),
+    db_(db),
+    transform_(transform),
+    filter_radius_(-1.0f),
+    filter_width_(-1.0f),
+    filter_height_(-1.0f),
+    filter_angle_(0.0f),
+    filter_position_(osg::Vec3f(0,0,0))
+{
+    QSettings settings("massheatmap.ini",QSettings::IniFormat);
+    QString imageFileName = settings.value("gradient_image","gradient3.bmp").toString();
+    QString colorImageFileName = settings.value("color_image","gradient2.bmp").toString();
+
+    image_ = osgDB::readImageFile(imageFileName.toStdString());
+    image_color_ = osgDB::readImageFile(colorImageFileName.toStdString());
+
+    osg::ref_ptr<osg::Drawable> drawable = myCreateTexturedQuadGeometry(osg::Vec3(0,0,0),1,1,image_,false,true,false);
+    osgText::Font* font = osgText::readFontFile("./fonts/arial_bold.ttf");
+    osg::Vec4 layoutColor(0.0f,0.0f,0.0f,1.0f);
+    float layoutCharacterSize = 0.05f;
+    {
+        text_ = new osgText::Text;
+        text_->setFont(font);
+        text_->setColor(layoutColor);
+        text_->setCharacterSize(layoutCharacterSize);
+        text_->setPosition(osg::Vec3(0.02,0.04,0.01f));
+
+        // right to left layouts would be used for hebrew or arabic fonts.
+        text_->setLayout(osgText::Text::LEFT_TO_RIGHT);
+        text_->setFontResolution(20,20);
+        geode_->addDrawable(text_);
+    }
+    geode_->addDrawable(drawable);
+
+}
+
+void ParallelPlane::UpdateText(){
+
+    text_->setPosition(osg::Vec3(0.02,0.04,0.01f));
+    QString txt = QString("XAxis: PCA%1\nYAxis: PCA%2\nVariance:0.876").arg(axes_[0]).arg(axes_[1]);
+    printf("Text: %s\n",txt.toStdString().c_str());
+    text_->setText(txt.toStdString());
+
+}
+
 void ParallelPlane::SetPosition(osg::Vec3f pos){
     osg::Matrix t;
     t.makeTranslate(pos);
@@ -62,27 +115,6 @@ void ParallelPlane::SetPosition(osg::Vec3f pos){
     m.setTrans(osg::Vec3f(0,0,0));  //remove old translation but leave rotation intact
     transform_->setMatrix(m*t);
 }
-
-ParallelPlane::ParallelPlane(osg::Geode *geode,osg::MatrixTransform *transform,Database *db):
-    geode_(geode),
-    db_(db),
-    transform_(transform),
-    filter_radius_(-1.0f),
-    filter_position_(osg::Vec3f(0,0,0))
-{
-    image_ = osgDB::readImageFile("gradient2.bmp");
-    osg::ref_ptr<osg::Drawable> drawable = myCreateTexturedQuadGeometry(osg::Vec3(0,0,0),1,1,image_,false,true,false);
-
-//    osg::Matrix t;
-//    t.makeTranslate(osg::Vec3f(0,12,0));
-
-  //  transform_->setMatrix(t);
-   // transform_->addDrawable(geode_);
-//    transform_->addChild(drawable.get());
-   // geode_->asTransform()->asMatrixTransform()->setMatrix(t);
-    geode_->addDrawable(drawable);
-}
-
 
 osg::Vec3f ParallelPlane::Domain(const int& row){
     float data[2];
@@ -117,7 +149,7 @@ osg::Vec4f ParallelPlane::Color(const int& row){
         (data[0] - db_->Min(axes_[0]))/(db_->Max(axes_[0])-db_->Min(axes_[0])),    //u
         (data[1] - db_->Min(axes_[1]))/(db_->Max(axes_[1])-db_->Min(axes_[1]))     //v
     );
-    return image_->getColor(coord);
+    return image_color_->getColor(coord);
 }
 void ParallelPlane::SetAxes(const size_t& axis0, const size_t& axis1){
     if(axis0 >= db_->NumColumns()){
@@ -130,15 +162,24 @@ void ParallelPlane::SetAxes(const size_t& axis0, const size_t& axis1){
     }
     axes_[0] = axis0;
     axes_[1] = axis1;
+
+    UpdateText();
 }
 
+void ParallelPlane::SetFilter(const osg::Vec3f& center, const float& height, const float &width, const float &angle){
+    filter_height_ = height;
+    filter_width_  = width;
+    filter_position_ = center;
+    filter_angle_ = angle;
+
+    emit filterChanged();
+}
 void ParallelPlane::SetFilter(const osg::Vec3f& p, const float& radius){
     filter_radius_ = radius;
     filter_position_ = p;
 
     emit filterChanged();
 }
-
 osg::Vec3f ParallelPlane::GetLocalPosition(){
     return osg::Vec3f(0,0,0);
 }
@@ -147,8 +188,36 @@ osg::Vec3f ParallelPlane::GetLocalPosition(){
 bool ParallelPlane::InRange(const int& row){
     return InFilter(row);
 }
+#include <cmath>
+#include <QTransform>
+bool ParallelPlane::InFilterNew(const int& row){
+    if(filter_width_ < 0)return true;
+//    float angle_rads = filter_angle_ * 3.141592654 / 180.0f;
+
+//    osg::Vec3f tmp = Domain(row) - filter_position_;
+//    float c = std::cos(angle_rads);
+//    float s = std::sin(angle_rads);
+//    float a = (c*(tmp.x() - filter_position_.x()) + s*(tmp.y() - filter_position_.y()));
+//    float aa = a*a;
+
+//    float b = (s*(tmp.x() - filter_position_.x()) - c*(tmp.y() - filter_position_.y()));
+//    float bb = b*b;
+
+//    return (aa/(filter_height_ * filter_height_) + bb/(filter_width_*filter_width_)) <= 1.0f;
+
+    QTransform trans;
+    trans.scale(filter_width_,filter_height_);
+    trans.rotate(filter_angle_);
+    trans.translate(filter_position_.x(),filter_position_.y());
+    QTransform transi = trans.inverted();
+    osg::Vec3f tmp = Domain(row);
+    QPointF p = QPointF(tmp.x(),tmp.y()) * transi;
+    QPointF pd = p - QPointF(0,0);
+    return (pd.manhattanLength() <= 1.0);
+}
 
 bool ParallelPlane::InFilter(const int& row){
+    return InFilterNew(row);
     if(filter_radius_ < 0)return true;  //hacky way to avoid having another flag
 
     osg::Vec3f tmp = Domain(row) - filter_position_;

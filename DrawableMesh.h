@@ -11,16 +11,21 @@ class DrawableWorker : public QObject {
     Q_OBJECT;
 public:
     explicit DrawableWorker(DrawableMesh *mesh,Database*db,QObject *parent=0);
+    void doWork();
 signals:
     void colorsUpdated();
+
 public slots:
-    void doWork();
+    void checkWork();
+    void requestWork();
     void abort();
 private:
     DrawableMesh *mesh_;
     Database *db_;
     bool running_;
     bool abort_;
+    bool work_;
+
     QMutex data_mutex_;
     CudaWrapper processor_;
 };

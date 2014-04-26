@@ -2,6 +2,7 @@
 #define DATABASE_H
 
 #include <vector>
+#include <QMutex>
 
 class Database
 {
@@ -49,11 +50,12 @@ public:
     const Data& get_data()const{return data_;}
     const float* get_coverage_data()const{return coverage_data_packed_;}
 
-    void set_active_subjects(std::vector<int> active_subjects){active_subjects_ = active_subjects;}
+    void set_inactive_subjects(std::vector<int> inactive_subjects);
 
-    std::vector<int> get_active_subjects() { return active_subjects_;}
+    std::vector<int> get_inactive_subjects();
 
 private:
+    QMutex data_mutex_;
     Data data_;
     Data coverage_data_;
 
@@ -66,7 +68,7 @@ private:
     std::vector<float> min_;
     std::vector<float> max_;
     std::vector<float> average_;
-    std::vector<int> active_subjects_;
+    std::vector<int> inactive_subjects_;
 };
 
 #endif // DATABASE_H

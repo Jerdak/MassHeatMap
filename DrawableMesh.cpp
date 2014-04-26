@@ -13,8 +13,29 @@ DrawableWorker::DrawableWorker(DrawableMesh *mesh,Database*db,QObject *parent):
     mesh_(mesh),
     abort_(false),
     running_(false),
-    db_(db)
+    work_(false),
+    db_(db),
+    data_mutex_(QMutex::Recursive)
 {
+}
+
+void DrawableWorker::requestWork(){
+    QMutexLocker lock(&data_mutex_);
+    work_ = true;
+}
+
+void DrawableWorker::checkWork(){
+    {   //lock and abort
+        QMutexLocker lock(&data_mutex_);
+        if(abort_) {
+            return;
+        }
+    }
+    {   //lock and work (if work has been queued
+        QMutexLocker lock(&data_mutex_);
+        if(work_)doWork();
+    }
+    QTimer::singleShot(15,this,SLOT(checkWork()));
 }
 
 void DrawableWorker::doWork(){
@@ -27,40 +48,16 @@ void DrawableWorker::doWork(){
 
     {   //color
         QMutexLocker lock(mesh_->get_mutex());
-       // processor_.dbgColor(mesh_->get_colors());
         processor_.Reduce(
                     mesh_->get_colors(),
-                    db_->get_active_subjects(),
+                    db_->get_inactive_subjects(),
                     db_->NumPackRows(),
                     db_->NumPackColumns(),
                     db_->get_coverage_data(),
                     db_->NumPackRows()*db_->NumPackColumns());
-//        QElapsedTimer time;time.start();
-//        osg::ref_ptr<osg::Vec4Array> colors = mesh_->get_colors();
-//        int high = 10;
-//        int low = 1;
-
-//        int step = qrand() % ((high + 1) - low) + low;
-//        float r =  qrand() % ((high + 1) - low) + low;
-//        float g =  qrand() % ((high + 1) - low) + low;
-//        float b =  qrand() % ((high + 1) - low) + low;
-
-//        r/=10.0f;
-//        g/=10.0f;
-//        b/=10.0f;
-//        for(int i = 0; i < colors->getNumElements(); ++i){
-//            if(i%step==0) (*colors)[i] = osg::Vec4f(r,g,b,1);
-//            else {
-//                (*colors)[i] = osg::Vec4f(0.5f,0.5f,0.5f,1.0f);
-//            }
-//        }
-        //int difference = time.elapsed();
     }
-
+    work_ = false;
     emit colorsUpdated();
-
-    // loop back around :)
-   // QTimer::singleShot(100,this,SLOT(doWork()));
 }
 
 void DrawableWorker::abort(){
@@ -83,8 +80,7 @@ DrawableMesh::DrawableMesh(Database*db):
 }
 
 void DrawableMesh::requestWork(){
-    qDebug() << "Work requested on drawable mesh";
-    QTimer::singleShot(1,worker_,SLOT(doWork()));
+    QTimer::singleShot(1,worker_,SLOT(requestWork()));
 }
 
 void DrawableMesh::colorsUpdated(){
@@ -138,7 +134,10 @@ void DrawableMesh::Load(const QString file_name){
         }
         geom_->setColorArray(colors_, osg::Array::BIND_PER_VERTEX);
     }
-    worker_->doWork();
+
+    // Start a single request to build first heatmap
+    QTimer::singleShot(1,worker_,SLOT(requestWork()));
+    QTimer::singleShot(1,worker_,SLOT(checkWork()));
 }
 
 void DrawableMesh::Save(const QString file_name){

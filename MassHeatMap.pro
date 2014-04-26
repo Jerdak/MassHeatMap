@@ -11,6 +11,7 @@ TARGET = MassHeatMap
 TEMPLATE = app
 PRECOMPILED_HEADER = Stable.h
 
+
 SOURCES += main.cpp\
         MainWindow.cpp \
     ParallelPlane.cpp \
@@ -20,7 +21,9 @@ SOURCES += main.cpp\
     PrincipalComponentAnalyzer.cpp \
     DrawableMesh.cpp \
     CudaWrapper.cpp \
-    HeatColor.cpp
+    HeatColor.cpp \
+    OptionWindow.cpp \
+    DrawWindow.cpp
 
 HEADERS  += MainWindow.h \
     Stable.h \
@@ -31,13 +34,17 @@ HEADERS  += MainWindow.h \
     PrincipalComponentAnalyzer.h \
     DrawableMesh.h \
     CudaWrapper.h \
-    HeatColor.h
+    HeatColor.h \
+    OptionWindow.h \
+    DrawWindow.h
 
 #OTHER_FILES += CudaKernel.cu
-FORMS    += MainWindow.ui
+FORMS    += MainWindow.ui \
+    OptionWindow.ui \
+    DrawWindow.ui
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../Libraries/build_OpenSceneGraph/lib/ -losg -losgViewer -losgGA -losgDB -losgUtil -losgQt
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../Libraries/build_OpenSceneGraph/lib/ -losgd -losgViewerd -losgGAd -losgDBd -losgUtild -losgQtd
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../Libraries/build_OpenSceneGraph/lib/ -losg -losgViewer -losgGA -losgDB -losgUtil -losgQt -losgText
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../Libraries/build_OpenSceneGraph/lib/ -losgd -losgViewerd -losgGAd -losgDBd -losgUtild -losgQtd -losgTextd
 
 
 INCLUDEPATH += $$PWD/../../Libraries/OpenSceneGraph-3.2.1-rc2/include

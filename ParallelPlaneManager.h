@@ -26,9 +26,11 @@ public:
 
     Database* get_database() {return &db_;}
     ParallelPlane* get_plane(const size_t& idx){return planes_[idx].get();}
+    size_t size(){return planes_.size();}
 
     static void dbgDatabaseLoad();
 
+    std::vector<int> get_active_subjects();
 signals:
     void ActiveSubjectsChanged();
 
@@ -43,10 +45,12 @@ private:
     void InitializeSceneGraph();
 
 private:
+    QMutex data_mutex_;
     int width_;
     int height_;
 
     std::vector<int> active_subjects_;
+    std::vector<int> inactive_subjects_;
     Database db_;
     osg::ref_ptr<osg::Node> root_node_;
     osg::ref_ptr<osg::Geode> geode_;

@@ -45,12 +45,12 @@ void cuda_preload_data(float *data){
 	preload_data_device.clear();
 }
 
-void color_pack(const std::vector<int> indices,const unsigned int& R, const unsigned int& C,float *colors,const float *data){
+void color_pack(const std::vector<int>& indices,const unsigned int& R, const unsigned int& C,float *colors,const float *data){
 	unsigned int NEWC = C;
 	unsigned int RC = R*C;
 	
-	printf("Color pack.  R: %d  C: %d\n",R,C);
-
+	//printf("Color pack.  R: %d  C: %d\n",R,C);
+	//printf("Inactive Subject Count: %d\n",indices.size());
 	// generate an index map for faster lookup
 	std::map<int,char> index_map;
 	{
@@ -59,16 +59,16 @@ void color_pack(const std::vector<int> indices,const unsigned int& R, const unsi
 		}
 		NEWC -= index_map.size();	//remove K columns from total
 	}
-	printf("Index map created.  Size: %d  New column size: %d\n",index_map.size(),NEWC);
+	//printf("Index map created.  Size: %d  New column size: %d\n",index_map.size(),NEWC);
 
 
 	thrust::device_vector<float> array(R * NEWC);
 	thrust::host_vector<float> array_host(R * NEWC);
-	printf("created array: %d\n",array.size());
-	printf("remove %d columns\n",index_map.size());
+	//printf("created array: %d\n",array.size());
+	//printf("remove %d columns\n",index_map.size());
 
-	Common::EventTimer ev("filter");
-	ev.BeforeEvent();
+	//Common::EventTimer ev("filter");
+	//ev.BeforeEvent();
 	{	// faster filter?
 
 		// quick filter uses column oriented data struction were data are stored .  
@@ -91,12 +91,12 @@ void color_pack(const std::vector<int> indices,const unsigned int& R, const unsi
 		}
 		
 	}
-	ev.AfterEvent();
-	ev.Display();
+	//ev.AfterEvent();
+	//ev.Display();
 	array = array_host;
 
-	Common::EventTimer ev2("reduce");
-	ev2.BeforeEvent();
+	//Common::EventTimer ev2("reduce");
+	//ev2.BeforeEvent();
 
 	thrust::device_vector<float> row_sums(R);
 	thrust::device_vector<float> row_indices(R);
@@ -111,18 +111,18 @@ void color_pack(const std::vector<int> indices,const unsigned int& R, const unsi
 			thrust::plus<float>()
 		);
 	}
-	ev2.AfterEvent();
-	ev2.Display();
+	//ev2.AfterEvent();
+	//ev2.Display();
 
-	Common::EventTimer ev3("repack");
-	ev3.BeforeEvent();
+	//Common::EventTimer ev3("repack");
+	//ev3.BeforeEvent();
 	thrust::host_vector<float> row_sums_host = row_sums;
 	for(size_t i = 0; i < R;++i){
 		colors[i] = row_sums_host[i];
 	}
-	printf("repacked color[0]: %f\n",colors[0]);
-	ev3.AfterEvent();
-	ev3.Display();
+	//printf("repacked color[0]: %f\n",colors[0]);
+	//ev3.AfterEvent();
+	//ev3.Display();
 }
 
 

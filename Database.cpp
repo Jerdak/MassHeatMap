@@ -1,19 +1,22 @@
 #include "Database.h"
 #include <map>
 #include <QStringList>
+#include <QMutexLocker>
 #undef max
 #undef min
 
 Database::Database():
     coverage_data_packed_(NULL),
-    coverage_data_size_(0)
+    coverage_data_size_(0),
+    data_mutex_(QMutex::Recursive)
 {
 
 }
 
 Database::Database(const Database& db):
     coverage_data_packed_(NULL),
-    coverage_data_size_(0)
+    coverage_data_size_(0),
+    data_mutex_(QMutex::Recursive)
 {
     min_ = std::vector<float>(db.min_);
     max_ = std::vector<float>(db.max_);
@@ -55,7 +58,15 @@ void Database::dbgData(const int& size){
     }
 
 }
+void Database::set_inactive_subjects(std::vector<int> inactive_subjects){
+    QMutexLocker locker( &data_mutex_ );
+    inactive_subjects_ = inactive_subjects;
+}
 
+std::vector<int> Database::get_inactive_subjects(){
+    QMutexLocker locker(&data_mutex_);
+    return inactive_subjects_;
+}
 void Database::dbgVerifyIntegrity(){
     qDebug() << "Coverage subject count: " << subjects_coverage_data_.size();
     qDebug() << "Coverage row count: " << coverage_data_.size();

@@ -29,6 +29,7 @@ public:
     void SetAxes(const size_t& axis0, const size_t& axis1);
 
     void SetFilter(const osg::Vec3f& p, const float& radius);
+    void SetFilter(const osg::Vec3f& center, const float& height, const float& width, const float& angle);
 
     // Set position of parallel plane
     void SetPosition(osg::Vec3f pos);
@@ -40,7 +41,10 @@ public:
     osg::Geode *get_geode() {return geode_;}
 
     bool InRange(const int& row);
+    bool InFilterNew(const int& row);
     bool InFilter(const int& row);
+
+    void UpdateText();
 private:
 
     // Flat texture creation utility (pulled from OpenSceneGraph examples)
@@ -61,11 +65,18 @@ private:
     // Parallel plane texture image
     osg::Image* image_;
 
+    // Parallel plane color image (paints lines and points)
+    osg::Image* image_color_;
+
+    osgText::Text* text_;
     // Raw data database.
     Database *db_;
 
     osg::Vec3f filter_position_;
     float filter_radius_;
+    float filter_width_;
+    float filter_height_;
+    float filter_angle_; //degrees
 };
 
 #endif // PARALLELPLANE_H
