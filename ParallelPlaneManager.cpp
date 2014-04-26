@@ -205,6 +205,10 @@ std::vector<int> ParallelPlaneManager::get_active_subjects(){
     QMutexLocker locker(&data_mutex_);
     return active_subjects_;
 }
+std::vector<int> ParallelPlaneManager::get_inactive_subjects(){
+    QMutexLocker locker(&data_mutex_);
+    return inactive_subjects_;
+}
 void ParallelPlaneManager::UpdateActiveSubjects(){
     {
         QMutexLocker locker(&data_mutex_);

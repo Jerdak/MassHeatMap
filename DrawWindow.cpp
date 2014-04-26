@@ -30,8 +30,7 @@ DrawWindow::~DrawWindow()
     delete ui;
 }
 
-void DrawWindow::mousePressEvent(QMouseEvent *event){
-
+void DrawWindow::leftMouseDown(QMouseEvent *event){
     for(int i = 0; i < rects_.size(); ++i){
         if(rects_[i].contains(event->x(),event->y())){
             int ex = event->x();
@@ -44,114 +43,117 @@ void DrawWindow::mousePressEvent(QMouseEvent *event){
             float x = (ex - rx) / (float)width_;
             float y = 1.0 - ((ey - ry) / (float)height_); // make sure to flip the y value
             left_mouse_selection_ = i;
-           // plane_manager_->get_plane(i)->SetFilter(osg::Vec3f(x,y,0.0),0.25f);
+            break;
         }
     }
-    left_mouse_down_ = true;
+    if(left_mouse_selection_!=-1)left_mouse_down_ = true;
     ellipse_height_ = 5.0;
 }
 
+void DrawWindow::rightMouseDown(QMouseEvent *event){
+    int mouse_selection = -1;
+    for(int i = 0; i < rects_.size(); ++i){
+        if(rects_[i].contains(event->x(),event->y())){
+            int ex = event->x();
+            int ey = event->y();
+            left_mouse_point_ = QPoint(ex,ey);
+
+            int rx = rects_[i].x();
+            int ry = rects_[i].y();
+
+            float x = (ex - rx) / (float)width_;
+            float y = 1.0 - ((ey - ry) / (float)height_); // make sure to flip the y value
+            mouse_selection = i;
+            break;
+        }
+    }
+    if(mouse_selection!=-1)plane_manager_->get_plane(mouse_selection)->set_filtered(false);
+}
+
+void DrawWindow::mousePressEvent(QMouseEvent *event){
+
+    if(event->buttons() == Qt::RightButton)rightMouseDown(event);
+    else if(event->buttons() == Qt::LeftButton)leftMouseDown(event);
+
+}
+
 void DrawWindow::wheelEvent(QWheelEvent * event){
+    if(!left_mouse_down_)return;
+
     ellipse_height_ += event->delta()/4.0f;
+    updateCurrentFilter();
     repaint();
 }
 
 void DrawWindow::mouseReleaseEvent(QMouseEvent *event){
     printf("Release\n");
     left_mouse_down_ = false;
+    left_mouse_selection_ = -1;
 
+    repaint();
 }
+
+void DrawWindow::updateCurrentFilter(){
+    if(!left_mouse_down_)return;
+
+    int rx = rects_[left_mouse_selection_].x();
+    int ry = rects_[left_mouse_selection_].y();
+
+    //plane_manager_->get_plane(left_mouse_selection_)->SetFilter(osg::Vec3f(o,0.0),d.length());
+    QPointF a((left_mouse_point_.x() - rx)/(float)width_,(left_mouse_point_.y() - ry)/(float)height_);
+    QPointF b((current_mouse_point_.x() - rx)/(float)width_,(current_mouse_point_.y() - ry)/(float)height_);
+    QLineF ab(a,b);
+    QPointF center = ab.pointAt(0.5);
+
+    float r = (-(float)ab.length()/2.0f);    // divide by width not necessary, value already normalized;
+    float h = (-ellipse_height_/2.0f) / height_;
+
+    plane_manager_->get_plane(left_mouse_selection_)->SetFilter(osg::Vec3f(center.x(),1.0f-center.y(),0.0f),-h,-r,ab.angle());
+}
+
 void DrawWindow::mouseMoveEvent(QMouseEvent *event){
     if(!left_mouse_down_)return;
 
     // verify the mouse is still inside the clicked parallel plane, ignore if not.
     if(!rects_[left_mouse_selection_].contains(event->x(),event->y()))return;
 
-    int ex = event->x();
-    int ey = event->y();
-    int rx = rects_[left_mouse_selection_].x();
-    int ry = rects_[left_mouse_selection_].y();
+    current_mouse_point_ = QPoint(event->x(),event->y());
 
-    current_mouse_point_ = QPoint(ex,ey);
-    // Get normalized x/y coords for left mouse down position (origin)
-    float xo = (left_mouse_point_.x() - rx) / (float)width_;
-    float yo = 1.0 - ((left_mouse_point_.y() - ry) / (float)height_); // make sure to flip the y value
-
-    // Get normalized x/y coords for current left mouse position
-    float xc = (ex - rx) / (float)width_;
-    float yc = 1.0 - ((ey - ry) / (float)height_); // make sure to flip the y value
-
-    osg::Vec2f o(xo,yo);    //original
-    osg::Vec2f c(xc,yc);    //current
-    osg::Vec2f d = c-o;     //direction
-    //plane_manager_->get_plane(left_mouse_selection_)->SetFilter(osg::Vec3f(o,0.0),d.length());
-    QLineF a(left_mouse_point_,current_mouse_point_);
-    QPointF center = a.pointAt(0.5);
-    QTransform trans;
-    trans.translate(center.x(),center.y());
-   // trans.rotate(-a.angle());
-//   / center = QPointF(-(float)a.length()/2.0f,-ellipse_height_/2.0f) * trans;
-    center = QPointF(-(float)a.length()/2.0f,-ellipse_height_/2.0f);
-    xo = (center.x() - rx) / (float)width_;
-    yo = (center.y() - ry) / (float)height_;
-
-    printf("xo: %f, yo: %f\n",xo,yo);
-   // painter.setTransform(trans);
-  // painter.drawEllipse(-(float)a.length()/2.0f,-ellipse_height_/2.0f,(float)a.length(),ellipse_height_);
-    plane_manager_->get_plane(left_mouse_selection_)->SetFilter(osg::Vec3f(xo,yo,0.0f),ellipse_height_,(float)a.length(),-a.angle());
+    updateCurrentFilter();
     this->repaint();
 }
+void DrawWindow::paintActiveFilter(QPaintEvent *event, QPainter &painter){
+    if(!left_mouse_down_)return;
+    QTransform trans;
 
-void DrawWindow::paintEvent(QPaintEvent *event){
-    if(!ui)return;
+    QLineF a(left_mouse_point_,current_mouse_point_);
+    QPointF c = a.pointAt(0.5);
+    trans.translate(c.x(),c.y());
+    trans.rotate(-a.angle());
+    painter.setTransform(trans);
+    painter.setBrush(QBrush(QColor(0,255,0,150)));
+    painter.drawEllipse(-(float)a.length()/2.0f,-ellipse_height_/2.0f,(float)a.length(),ellipse_height_);
+}
 
-    rects_.clear();
-    ui->centralwidget->width();
-
-    QBrush  background = QBrush(QColor(64, 32, 64));
-    QPainter painter;
-    painter.begin(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-    painter.fillRect(event->rect(), background);
+void DrawWindow::paintActiveSubjects(QPaintEvent *event, QPainter &painter){
     int x = 0;
     int y = 0;
 
-    QImage img("gradient3.bmp");
-    QImage simg = img.scaled(width_,height_); //rescale image before applying it to the paint surface.
-
-    //printf("Window width = %d\n",ui->centralwidget->width());
-    for(int i = 0; i < plane_manager_->size(); i++){
-        ParallelPlane* pl = plane_manager_->get_plane(i);
-        painter.drawImage(x,y,simg,0,0,width_,height_);
-        rects_.push_back( QRect(x,y,width_,height_) );
-        //printf("(%d,%d)->(%d,%d)\n",x,y,width_,height_);
-
-        if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
-            y += height_ + spacing_;
-            x = 0;
-        } else {
-            x += width_ + spacing_;
-        }
-    }
-
     QBrush brush = painter.brush();
     brush.setStyle(Qt::SolidPattern);
+    brush.setColor(QColor(255,0,0,255));
     painter.setBrush(brush);
-    std::vector<int>& subjects = plane_manager_->get_active_subjects();
+    std::vector<int> subjects = plane_manager_->get_active_subjects();
     for(int i = 0 ; i < subjects.size(); ++i){
         int subject = subjects[i];
-        int x = 0;
-        int y = 0;
+        x = 0;
+        y = 0;
         for(int p = 0; p < plane_manager_->size(); p++){
             ParallelPlane* pl = plane_manager_->get_plane(p);
             osg::Vec3f pt = pl->ReverseDomain(subject);
             int dx = pt.x() * width_ + x;
-            int dy = (1-pt.y()) * height_ + y;
-            //dy = height_ - dy; //flip, qt images rendered from top left.
+            int dy = (1-pt.y()) * height_ + y;//flip, qt images rendered from top left.
             painter.drawEllipse(dx,dy,5,5);
-            if(p == plane_manager_->size()-1){
-              //printf("(%d,%d)->(%d,%d)\n",dx,dy,width_,height_);
-            }
             if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
                 y += height_ + spacing_;
                 x = 0;
@@ -161,18 +163,111 @@ void DrawWindow::paintEvent(QPaintEvent *event){
 
         }
     }
+}
 
-    if(left_mouse_down_){
-        QTransform trans;
+void DrawWindow::paintInactiveSubjects(QPaintEvent *event, QPainter &painter){
+    int x = 0;
+    int y = 0;
 
-        QLineF a(left_mouse_point_,current_mouse_point_);
-        QPointF c = a.pointAt(0.5);
-        trans.translate(c.x(),c.y());
-        trans.rotate(-a.angle());
-        painter.setTransform(trans);
-        painter.drawEllipse(-(float)a.length()/2.0f,-ellipse_height_/2.0f,(float)a.length(),ellipse_height_);
+    QBrush brush = painter.brush();
+    brush.setStyle(Qt::SolidPattern);
+    brush.setColor(QColor(150,150,150,150));
+    painter.setBrush(brush);
+    std::vector<int> subjects = plane_manager_->get_inactive_subjects();
+    for(int i = 0 ; i < subjects.size(); ++i){
+        int subject = subjects[i];
+        x = 0;
+        y = 0;
+        for(int p = 0; p < plane_manager_->size(); p++){
+            ParallelPlane* pl = plane_manager_->get_plane(p);
+            osg::Vec3f pt = pl->ReverseDomain(subject);
+            int dx = pt.x() * width_ + x;
+            int dy = (1-pt.y()) * height_ + y;//flip, qt images rendered from top left.
+            painter.drawEllipse(dx,dy,5,5);
+            if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
+                y += height_ + spacing_;
+                x = 0;
+            } else {
+                x += width_ + spacing_;
+            }
+
+        }
     }
+}
+void DrawWindow::paintPlanes(QPaintEvent *event, QPainter &painter){
+    int x = 0;
+    int y = 0;
+    QImage img("gradient3.bmp");
+    QImage simg = img.scaled(width_,height_); //rescale image before applying it to the paint surface.
+
+    for(int i = 0; i < plane_manager_->size(); i++){
+        ParallelPlane* pl = plane_manager_->get_plane(i);
+        painter.drawImage(x,y,simg,0,0,width_,height_);
+        rects_.push_back( QRect(x,y,width_,height_) );
+
+        if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
+            y += height_ + spacing_;
+            x = 0;
+        } else {
+            x += width_ + spacing_;
+        }
+    }
+}
+void DrawWindow::paintFilters(QPaintEvent *event, QPainter &painter){
+    int x = 0;
+    int y = 0;
+    QBrush brush = painter.brush();
+    brush.setStyle(Qt::SolidPattern);
+    brush.setColor(QColor(255,255,255,75));
+    painter.setBrush(brush);
+    for(int p = 0; p < plane_manager_->size(); p++){
+        if(p!=left_mouse_selection_){
+            if(plane_manager_->get_plane(p)->IsFiltered()){
+
+                osg::Vec3f pos = plane_manager_->get_plane(p)->get_filter_position();
+                QPointF c(pos.x(),pos.y());
+                float r = plane_manager_->get_plane(p)->get_filter_width();
+                float h = plane_manager_->get_plane(p)->get_filter_height();
+                float a = plane_manager_->get_plane(p)->get_filter_angle();
+
+                float cx = c.x() * width_ + x;
+                float cy = (1-c.y()) * height_ + y;
+                QTransform trans;
+                trans.translate(cx,cy);
+                trans.rotate(-a);
+                painter.setTransform(trans);
+                painter.drawEllipse(-r*width_,-h*height_,r*width_*2,h*height_*2);
+            }
+        }
+
+        if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
+            y += height_ + spacing_;
+            x = 0;
+        } else {
+            x += width_ + spacing_;
+        }
+    }
+}
+
+void DrawWindow::paintEvent(QPaintEvent *event){
+    if(!ui)return;
+
+    rects_.clear();
+    ui->centralwidget->width();
+
+    QBrush  background = QBrush(QColor(67, 67, 67));
+    QPainter painter;
+    painter.begin(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.fillRect(event->rect(), background);
+
+        paintPlanes(event,painter);
+        paintActiveSubjects(event,painter);
+        paintInactiveSubjects(event,painter);
+        paintFilters(event,painter);
+        paintActiveFilter(event,painter);
     painter.end();
+
 //    QLinearGradient gradient(QPointF(50, -20), QPointF(80, 20));
 //         gradient.setColorAt(0.0, Qt::white);
 //         gradient.setColorAt(1.0, QColor(0xa6, 0xce, 0x39));

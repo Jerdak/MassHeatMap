@@ -31,6 +31,14 @@ public:
     void SetFilter(const osg::Vec3f& p, const float& radius);
     void SetFilter(const osg::Vec3f& center, const float& height, const float& width, const float& angle);
 
+    osg::Vec3f  get_filter_position(){ return filter_position_;}
+    float  get_filter_width() { return filter_width_; }
+    float  get_filter_height(){ return filter_height_;}
+    float  get_filter_angle(){ return filter_angle_;}
+
+    bool IsFiltered() { return is_filtered_;}
+    void set_filtered(const bool& b);
+
     // Set position of parallel plane
     void SetPosition(osg::Vec3f pos);
 
@@ -50,6 +58,9 @@ private:
     // Flat texture creation utility (pulled from OpenSceneGraph examples)
     osg::Geometry* myCreateTexturedQuadGeometry(const osg::Vec3& pos,float width,float height, osg::Image* image, bool useTextureRectangle, bool xyPlane=false, bool option_flip=false);
 
+    bool is_filtered_;
+
+    int index_;
     int width_;
     int height_;
 

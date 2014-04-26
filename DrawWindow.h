@@ -19,11 +19,21 @@ public:
     explicit DrawWindow(ParallelPlaneManager *plane_manager,QWidget *parent = 0);
     ~DrawWindow();
 protected:
+    void updateCurrentFilter();
     void paintEvent(QPaintEvent *event);
     void mousePressEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
     void wheelEvent(QWheelEvent * event);
+
+    void leftMouseDown(QMouseEvent *event);
+    void rightMouseDown(QMouseEvent *event);
+
+    void paintActiveFilter(QPaintEvent *event, QPainter &painter);
+    void paintActiveSubjects(QPaintEvent *event, QPainter &painter);
+    void paintInactiveSubjects(QPaintEvent *event, QPainter &painter);
+    void paintPlanes(QPaintEvent *event, QPainter &painter);
+    void paintFilters(QPaintEvent *event, QPainter &painter);
 private:
     float ellipse_height_;
     QPoint left_mouse_point_;

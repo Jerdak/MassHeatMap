@@ -8,7 +8,7 @@
 #include <osg/Node>
 #include <QTimer>
 #include "Database.h"
-
+#include <osgViewer/CompositeViewer>
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -22,7 +22,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QWidget* widget1 = addParallelPlaneWidget( createGraphicsWindow(0,0,100,100) );
     QWidget* widget2 = addModellerWidget( createGraphicsWindow(0,0,100,100), mesh_->get_node() );
-    setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
+    setThreadingModel(osgViewer::CompositeViewer::AutomaticSelection);
 
     // disable the default setting of viewer.done() by pressing Escape.
     setKeyEventSetsDone(0);
@@ -43,9 +43,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect( &_timer, SIGNAL(timeout()), this, SLOT(update()) );
     connect(ui->actionClose,SIGNAL(triggered()),this,SLOT(close()));
 
-   // option_window_ = new OptionWindow(plane_manager_.get(),this);
-    //option_window_->show();
-
     draw_window_ = new DrawWindow(plane_manager_.get(),this);
     draw_window_->show();
     _timer.start( 10 );
@@ -58,7 +55,7 @@ MainWindow::~MainWindow()
 void MainWindow::close(){
    QApplication::quit();
 }
-
+#include <osg/MatrixTransform>
 QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
 {
     osgViewer::View* view = new osgViewer::View;
@@ -77,9 +74,15 @@ QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
     //TODO: orthographic camera (osg TrackballManipulator doesn't support ortho zoom so we'll need a custom camera
     //camera->setProjectionMatrixAsOrtho(0.0f, 100,0.0f,100, 1.0f, 10000.0f );
 
+    {   // Manually rotate parallel plane widget to correct orientation (TODO:  Fix this hack with something cleaner)
+        osg::Matrix m1 = osg::Matrix::rotate(-1.57,osg::Vec3f(1,0,0));
+        osg::Matrix m2 = osg::Matrix::rotate(3.14,osg::Vec3f(0,0,1));
+        osg::Matrix m3 = osg::Matrix::rotate(-1.57,osg::Vec3f(0,0,1));
+        parent_transform_->setMatrix(m2*m1*m3);
+    }
     view->setSceneData(parent_transform_);
     view->addEventHandler( new osgViewer::StatsHandler );
-    view->setCameraManipulator( new osgGA::TrackballManipulator );
+    view->setCameraManipulator( new osgGA::TrackballManipulator);
 
     return gw->getGLWidget();
 }
@@ -97,11 +100,17 @@ QWidget* MainWindow::addModellerWidget( osgQt::GraphicsWindowQt* gw, osg::ref_pt
     camera->setViewport( new osg::Viewport(0, 0, traits->width, traits->height) );
     camera->setProjectionMatrixAsPerspective(30.0f, static_cast<double>(traits->width)/static_cast<double>(traits->height), 1.0f, 1000.0f );
 
-
     //TODO: orthographic camera (osg TrackballManipulator doesn't support ortho zoom so we'll need a custom camera
     //camera->setProjectionMatrixAsOrtho(0.0f, 100,0.0f,100, 1.0f, 10000.0f );
 
-    view->setSceneData(scene);
+    {   // Manually rotate model widget to correct orientation (TODO:  Fix this hack with something cleaner)
+        osg::MatrixTransform *t = new osg::MatrixTransform();
+        osg::Matrix m1 = osg::Matrix::rotate(1.57,osg::Vec3f(1,0,0));
+        t->setMatrix(m1);
+        t->addChild(scene);
+
+        view->setSceneData(t);
+    }
     view->addEventHandler( new osgViewer::StatsHandler );
     view->setCameraManipulator( new osgGA::TrackballManipulator );
 

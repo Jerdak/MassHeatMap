@@ -4,7 +4,8 @@
 #include <osg/MatrixTransform>
 #include <QSettings>
 #include <QString>
-
+#include <cmath>
+#include <QTransform>
 osg::Geometry* ParallelPlane::myCreateTexturedQuadGeometry(
         const osg::Vec3& pos,       //Position of textured quads
         float width,                //Width of textured quads (not image width)
@@ -69,7 +70,8 @@ ParallelPlane::ParallelPlane(osg::Geode *geode,osg::MatrixTransform *transform,D
     filter_width_(-1.0f),
     filter_height_(-1.0f),
     filter_angle_(0.0f),
-    filter_position_(osg::Vec3f(0,0,0))
+    filter_position_(osg::Vec3f(0,0,0)),
+    is_filtered_(false)
 {
     QSettings settings("massheatmap.ini",QSettings::IniFormat);
     QString imageFileName = settings.value("gradient_image","gradient3.bmp").toString();
@@ -165,18 +167,25 @@ void ParallelPlane::SetAxes(const size_t& axis0, const size_t& axis1){
 
     UpdateText();
 }
+void ParallelPlane::set_filtered(const bool& b){
+    is_filtered_ = b;
 
+    emit filterChanged();
+
+}
 void ParallelPlane::SetFilter(const osg::Vec3f& center, const float& height, const float &width, const float &angle){
     filter_height_ = height;
     filter_width_  = width;
     filter_position_ = center;
     filter_angle_ = angle;
+    is_filtered_ = true;
 
     emit filterChanged();
 }
 void ParallelPlane::SetFilter(const osg::Vec3f& p, const float& radius){
     filter_radius_ = radius;
     filter_position_ = p;
+    is_filtered_ = true;
 
     emit filterChanged();
 }
@@ -188,32 +197,27 @@ osg::Vec3f ParallelPlane::GetLocalPosition(){
 bool ParallelPlane::InRange(const int& row){
     return InFilter(row);
 }
-#include <cmath>
-#include <QTransform>
+
 bool ParallelPlane::InFilterNew(const int& row){
-    if(filter_width_ < 0)return true;
-//    float angle_rads = filter_angle_ * 3.141592654 / 180.0f;
+    if(!is_filtered_)return true;
 
-//    osg::Vec3f tmp = Domain(row) - filter_position_;
-//    float c = std::cos(angle_rads);
-//    float s = std::sin(angle_rads);
-//    float a = (c*(tmp.x() - filter_position_.x()) + s*(tmp.y() - filter_position_.y()));
-//    float aa = a*a;
-
-//    float b = (s*(tmp.x() - filter_position_.x()) - c*(tmp.y() - filter_position_.y()));
-//    float bb = b*b;
-
-//    return (aa/(filter_height_ * filter_height_) + bb/(filter_width_*filter_width_)) <= 1.0f;
-
-    QTransform trans;
-    trans.scale(filter_width_,filter_height_);
-    trans.rotate(filter_angle_);
-    trans.translate(filter_position_.x(),filter_position_.y());
-    QTransform transi = trans.inverted();
+    QTransform trans[3];
     osg::Vec3f tmp = Domain(row);
-    QPointF p = QPointF(tmp.x(),tmp.y()) * transi;
-    QPointF pd = p - QPointF(0,0);
-    return (pd.manhattanLength() <= 1.0);
+    QPointF p = QPointF(tmp.x(),tmp.y());
+
+
+    trans[0].scale(filter_width_,filter_height_);
+    trans[1].rotate(filter_angle_);
+    trans[2].translate(filter_position_.x(),filter_position_.y());
+
+    {   // apply inversion transforms manually, Qt's transform class doesn't apply transforms in sequence
+        p = p * trans[2].inverted() * trans[1].inverted() * trans[0].inverted();    // point in ellipse space
+    }
+
+    QLineF pd(p,QPointF(0,0));
+
+    // assume unit ellipse w/ radius/height = 1.0
+    return (pd.length() <= 1.0);
 }
 
 bool ParallelPlane::InFilter(const int& row){

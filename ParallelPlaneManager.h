@@ -31,6 +31,7 @@ public:
     static void dbgDatabaseLoad();
 
     std::vector<int> get_active_subjects();
+    std::vector<int> get_inactive_subjects();
 signals:
     void ActiveSubjectsChanged();
 
