@@ -100,10 +100,21 @@ ParallelPlane::ParallelPlane(osg::Geode *geode,osg::MatrixTransform *transform,D
 
 }
 
+float ParallelPlane::Variance(){
+    float var0 = db_->get_eigen_value(axes_[0]);
+    float var1 = db_->get_eigen_value(axes_[1]);
+
+    if(var0<0 || var1<0)return -1;
+    else return var0+var1;
+}
+
 void ParallelPlane::UpdateText(){
 
+    float var = Variance();
+
+    QString var_text = (var<0)?"NA":QString("Variance:%1").arg(var);
     text_->setPosition(osg::Vec3(0.02,0.04,0.01f));
-    QString txt = QString("XAxis: PCA%1\nYAxis: PCA%2\nVariance:0.876").arg(axes_[0]).arg(axes_[1]);
+    QString txt = QString("XAxis: %1\nYAxis: %2\n%3").arg(db_->get_header(axes_[0])).arg(db_->get_header(axes_[1])).arg(var_text);
     printf("Text: %s\n",txt.toStdString().c_str());
     text_->setText(txt.toStdString());
 

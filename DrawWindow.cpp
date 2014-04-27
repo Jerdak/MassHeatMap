@@ -7,22 +7,28 @@
 #include <QPainter>
 #include <QRect>
 #include <QLineF>
-
+#include <QSettings>
 #include <cmath>
 DrawWindow::DrawWindow(ParallelPlaneManager *plane_manager,QWidget *parent) :
     QMainWindow(parent),
     plane_manager_(plane_manager),
-    ui(new Ui::DrawWindow)
+    ui(new Ui::DrawWindow),
+    left_mouse_down_(false),
+    left_mouse_selection_(-1)
 {
     ui->setupUi(this);
     this->setMouseTracking(true);
 
-    width_ = 250;
-    height_ = 250;
-    spacing_ = 10;
+    QSettings settings("massheatmap.ini",QSettings::IniFormat);
 
-    left_mouse_down_ = false;
+    width_ = settings.value("draw_window_size","250").toInt();
+    height_ = settings.value("draw_window_size","250").toInt();
+    spacing_ = settings.value("draw_window_spacings","10").toInt();
+    wheel_scale_ = settings.value("draw_window_wheel_scale","4").toFloat();
 
+    QString tmp_img_name = settings.value("draw_image","gradient3.bmp").toString();
+    QImage tmp_img(tmp_img_name);
+    draw_image_ = tmp_img.scaled(width_,height_); //rescale image before applying it to the paint surface.
 }
 
 DrawWindow::~DrawWindow()
@@ -80,7 +86,7 @@ void DrawWindow::mousePressEvent(QMouseEvent *event){
 void DrawWindow::wheelEvent(QWheelEvent * event){
     if(!left_mouse_down_)return;
 
-    ellipse_height_ += event->delta()/4.0f;
+    ellipse_height_ += event->delta()/wheel_scale_;
     updateCurrentFilter();
     repaint();
 }
@@ -133,6 +139,13 @@ void DrawWindow::paintActiveFilter(QPaintEvent *event, QPainter &painter){
     painter.setTransform(trans);
     painter.setBrush(QBrush(QColor(0,255,0,150)));
     painter.drawEllipse(-(float)a.length()/2.0f,-ellipse_height_/2.0f,(float)a.length(),ellipse_height_);
+
+    float area_ellipse = 3.141592654 * (float)a.length()/2.0f * ellipse_height_/2.0f;
+    float area_image = width_ * height_;
+    //TODO: replace with percent selection based on number of filtered subjects
+    QString txt =  QString("Area: %1\%").arg(area_ellipse/area_image*100);
+
+    painter.drawText(0,0,txt);
 }
 
 void DrawWindow::paintActiveSubjects(QPaintEvent *event, QPainter &painter){
@@ -197,12 +210,10 @@ void DrawWindow::paintInactiveSubjects(QPaintEvent *event, QPainter &painter){
 void DrawWindow::paintPlanes(QPaintEvent *event, QPainter &painter){
     int x = 0;
     int y = 0;
-    QImage img("gradient3.bmp");
-    QImage simg = img.scaled(width_,height_); //rescale image before applying it to the paint surface.
 
     for(int i = 0; i < plane_manager_->size(); i++){
         ParallelPlane* pl = plane_manager_->get_plane(i);
-        painter.drawImage(x,y,simg,0,0,width_,height_);
+        painter.drawImage(x,y,draw_image_,0,0,width_,height_);
         rects_.push_back( QRect(x,y,width_,height_) );
 
         if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
@@ -248,6 +259,25 @@ void DrawWindow::paintFilters(QPaintEvent *event, QPainter &painter){
         }
     }
 }
+void DrawWindow::paintText(QPaintEvent *event, QPainter &painter){
+    int x = 0;
+    int y = 0;
+    painter.resetMatrix();
+    QBrush brush = painter.brush();
+    brush.setStyle(Qt::SolidPattern);
+    brush.setColor(QColor(0,0,0,255));
+    painter.setBrush(brush);
+    for(int p = 0; p < plane_manager_->size(); p++){
+
+        painter.drawText(x,y+10, QString("Variance: %1").arg(plane_manager_->get_plane(p)->Variance()));
+        if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
+            y += height_ + spacing_;
+            x = 0;
+        } else {
+            x += width_ + spacing_;
+        }
+    }
+}
 
 void DrawWindow::paintEvent(QPaintEvent *event){
     if(!ui)return;
@@ -266,6 +296,7 @@ void DrawWindow::paintEvent(QPaintEvent *event){
         paintInactiveSubjects(event,painter);
         paintFilters(event,painter);
         paintActiveFilter(event,painter);
+        paintText(event,painter);
     painter.end();
 
 //    QLinearGradient gradient(QPointF(50, -20), QPointF(80, 20));

@@ -14,6 +14,7 @@ public:
 
     // Add a new plane to the plane manager
     void AddNewPlane(const int& axis0, const int& axis1, const bool& rebuild=false);
+    void AddNewPlane(const QString& axis0, const QString& axis1, const bool& rebuild=false);
 
     // Load database data (MUST BE DONE BEFORE CALLING AddNewPlane())
     void LoadDatabase(const QString& database_name,const QString& pack_name);
@@ -36,7 +37,10 @@ signals:
     void ActiveSubjectsChanged();
 
 public slots:
+    // Build spacing between parallel planes
     void BuildSpacing();
+
+    // Redraw parallel planes
     void Redraw();
 
 private:
@@ -46,15 +50,34 @@ private:
     void InitializeSceneGraph();
 
 private:
+
+    bool use_cached_database_;
+
+    // Lockable mutex to control threaded plane access
     QMutex data_mutex_;
+
+    // Width of plane view window
     int width_;
+
+    // Height of plane view window
     int height_;
 
+    // Subjects not filtered out by any plane
     std::vector<int> active_subjects_;
+
+    // Subjects filtered out by at least 1 plane
     std::vector<int> inactive_subjects_;
+
+    // Raw data
     Database db_;
+
+    // Root parallel plane node
     osg::ref_ptr<osg::Node> root_node_;
+
+    // Root parallel plane geometry node
     osg::ref_ptr<osg::Geode> geode_;
+
+    // All the planes
     std::vector<std::unique_ptr<ParallelPlane> > planes_;
 };
 

@@ -9,6 +9,7 @@
 #include <QTimer>
 #include "Database.h"
 #include <osgViewer/CompositeViewer>
+#include <osg/MatrixTransform>
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -22,7 +23,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QWidget* widget1 = addParallelPlaneWidget( createGraphicsWindow(0,0,100,100) );
     QWidget* widget2 = addModellerWidget( createGraphicsWindow(0,0,100,100), mesh_->get_node() );
-    setThreadingModel(osgViewer::CompositeViewer::AutomaticSelection);
+
+    // USE SINGLE THREADED.  OSG does not play nice with Qt Threads, setting this to anythign else results
+    // in numerous crashes in OSG's draw methods.
+    setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
 
     // disable the default setting of viewer.done() by pressing Escape.
     setKeyEventSetsDone(0);
@@ -32,10 +36,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->gridLayout_2->addWidget(widget2,0,0);
     ui->statusBar->showMessage("Building planes");
 
-    plane_manager_->AddNewPlane(0,1,true);
-    plane_manager_->AddNewPlane(2,3);
-    plane_manager_->AddNewPlane(95,96);
-    plane_manager_->AddNewPlane(97,98,true);
+    plane_manager_->AddNewPlane("pca0","pca1",true);
+    plane_manager_->AddNewPlane("pca2","pca3");
+
+    plane_manager_->AddNewPlane("weightkg","stature");//plane_manager_->AddNewPlane(95,96);
+    plane_manager_->AddNewPlane("chestcircumference","span",true);
     plane_manager_->Redraw();
 
     ui->statusBar->showMessage("Scene Render Complete.");
@@ -55,10 +60,10 @@ MainWindow::~MainWindow()
 void MainWindow::close(){
    QApplication::quit();
 }
-#include <osg/MatrixTransform>
 QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
 {
     osgViewer::View* view = new osgViewer::View;
+
     addView( view );
 
     osg::Camera* camera = view->getCamera();

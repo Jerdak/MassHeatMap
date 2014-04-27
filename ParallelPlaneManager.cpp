@@ -7,22 +7,19 @@
 #include <osg/Geode>
 #include <osg/Geometry>
 #include <osg/LineWidth>
+#include <QFileInfo>
+
 ParallelPlaneManager::ParallelPlaneManager(osg::ref_ptr<osg::Node> root_node):
     root_node_(root_node),
     data_mutex_(QMutex::Recursive)
 {
     QSettings settings("massheatmap.ini",QSettings::IniFormat);
-
-    QString pcaFileName = settings.value("pca_file","pca.csv").toString();
+    QString pcaFileName = settings.value("data_file","pca.csv").toString();
     QString covFileName = settings.value("coverage_file","./coverage_data/pack_test.csv").toString();
+    use_cached_database_ = settings.value("use_cached_database","true").toBool();
 
     LoadDatabase(pcaFileName,covFileName);
     InitializeSceneGraph();
-
-//    PrincipalComponentAnalyzer pca;
-//    db_ = pca.GeneratePCATable(db_);
-//    db_.BuildMetrics();
-//    db_.SaveData("pca.csv");
 }
 
 ParallelPlaneManager::ParallelPlaneManager(osg::ref_ptr<osg::Node> root_node,const int& width, const int& height):
@@ -32,8 +29,9 @@ ParallelPlaneManager::ParallelPlaneManager(osg::ref_ptr<osg::Node> root_node,con
     data_mutex_(QMutex::Recursive)
 {
     QSettings settings("massheatmap.ini",QSettings::IniFormat);
-    QString pcaFileName = settings.value("pca_file","pca.csv").toString();
+    QString pcaFileName = settings.value("data_file","pca.csv").toString();
     QString covFileName = settings.value("coverage_file","./coverage_data/pack_test.csv").toString();
+    use_cached_database_ = settings.value("use_cached_database","true").toBool();
 
     LoadDatabase(pcaFileName,covFileName);
     InitializeSceneGraph();
@@ -163,9 +161,37 @@ void ParallelPlaneManager::dbgDatabaseLoad(){
 
 void ParallelPlaneManager::LoadDatabase(const QString& database_name,const QString& pack_name){
     QMutexLocker locker(&data_mutex_);
+    bool load_raw = true;
+    if(use_cached_database_){
+        QFileInfo fi("db_cache.csv");
+        if(fi.exists()){
+            qDebug() << "Loading cached database from db_cache.csv\n";
+            load_raw = false;
+        } else {
+            load_raw = true;
+        }
+    }
+
     db_.Clear();
-    db_.LoadData(database_name);
+    if(load_raw){
+        qDebug() << "Loading raw database from" << database_name << "\n";
+        Database db_msrs;
+        db_msrs.LoadData(database_name);
+        PrincipalComponentAnalyzer pca;
+        Database db_pca = pca.GeneratePCATable(db_msrs);
+        for(size_t c = 0; c < db_msrs.NumColumns();++c){
+            db_pca.append_column(db_msrs.get_column(c),db_msrs.get_header(c),false);
+        }
+        db_pca.set_subjects(db_msrs.get_subjects());
+        db_pca.BuildMetrics();
+
+        db_pca.SaveData("db_cache.csv");
+        db_.set_eigen_values(db_pca.get_eigen_values());
+    }
+
+    db_.LoadData("db_cache.csv");
     db_.LoadCoveragePack(pack_name);
+
     db_.dbgVerifyIntegrity();
     db_.BuildMetrics();
 }
@@ -189,6 +215,10 @@ void ParallelPlaneManager::AddNewPlane(const int &axis0, const int &axis1, const
     }
 
     if(rebuild)BuildSpacing();
+}
+
+void ParallelPlaneManager::AddNewPlane(const QString &axis0, const QString &axis1, const bool& rebuild){
+    AddNewPlane(db_.get_header_index(axis0),db_.get_header_index(axis1),rebuild);
 }
 
 void ParallelPlaneManager::BuildSpacing(){

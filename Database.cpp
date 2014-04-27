@@ -22,21 +22,37 @@ Database::Database(const Database& db):
     max_ = std::vector<float>(db.max_);
     average_ = std::vector<float>(db.average_);
     header_row_ = HeaderRow(db.header_row_);
+    eigen_values_ = std::vector<float>(db.eigen_values_);
+    inactive_subjects_ = std::vector<int>(db.inactive_subjects_);
+    subjects_data_ = std::vector<int>(db.subjects_data_);
+    subjects_coverage_data_ = std::vector<int>(db.subjects_coverage_data_);
+
     data_ = Data(db.data_);
     coverage_data_size_ = db.coverage_data_size_;
 
+    if(coverage_data_packed_){delete [] coverage_data_packed_;}
+
+    coverage_data_packed_ = new float[coverage_data_size_];
     memcpy(coverage_data_packed_,db.coverage_data_packed_,coverage_data_size_ * sizeof(float));
 }
 
 void Database::operator=(const Database& db)
 {
-    if(coverage_data_packed_)delete [] coverage_data_packed_;
     min_ = std::vector<float>(db.min_);
     max_ = std::vector<float>(db.max_);
     average_ = std::vector<float>(db.average_);
     header_row_ = HeaderRow(db.header_row_);
+    eigen_values_ = std::vector<float>(db.eigen_values_);
+    inactive_subjects_ = std::vector<int>(db.inactive_subjects_);
+    subjects_data_ = std::vector<int>(db.subjects_data_);
+    subjects_coverage_data_ = std::vector<int>(db.subjects_coverage_data_);
+
     data_ = Data(db.data_);
     coverage_data_size_ = db.coverage_data_size_;
+
+    if(coverage_data_packed_){delete [] coverage_data_packed_;}
+
+    coverage_data_packed_ = new float[coverage_data_size_];
     memcpy(coverage_data_packed_,db.coverage_data_packed_,coverage_data_size_ * sizeof(float));
 }
 
@@ -159,6 +175,26 @@ void Database::AppendRow(const QStringList& tokens){
     data_.push_back(new_row);
 }
 
+void Database::SetEigenValues(const QStringList& eigs){
+    eigen_values_.clear();
+    for(int i = 0; i < eigs.size(); i++){
+        eigen_values_.push_back(eigs[i].toFloat());
+    }
+}
+
+QString Database::get_header(const int& idx){
+     if(idx<0 || idx >= header_row_.size()){
+         qDebug() << "Index out of range, no such header <" << idx << ">\n";
+         return QString("");
+     }
+     return header_row_[idx];
+}
+
+float Database::get_eigen_value(const int& idx){
+    if(idx<0 || idx >= eigen_values_.size())return -1;  //quietly ignore and return dummy value so that that non-pca columns can continue
+    return eigen_values_[idx];
+}
+
 void Database::SetHeader(const QStringList& tokens){
     if(NumColumns() != tokens.size() && NumColumns() != 0){
         QString temp = QString("Mismatched header/header combination.  Original Header Count: %1 New Header Count: %2\n").arg(QString::number(NumColumns()),QString::number(tokens.size()));
@@ -166,9 +202,10 @@ void Database::SetHeader(const QStringList& tokens){
         return;
     }
     header_row_.clear();
-
+    header_map_.clear();
     for(int i = 0; i < tokens.size(); i++){
         header_row_.push_back(tokens[i]);
+        header_map_[tokens[i]] = i;
     }
 }
 
@@ -216,22 +253,6 @@ void Database::PackCoverageData(){
             coverage_data_packed_[idx] = coverage_data_[r][c];
         }
     }
-    printf("packed[0]: ");
-    for(int i = 0; i < 20; i++){
-        printf("%f ",coverage_data_packed_[i]);
-    }
-    printf("\n");
-    /*for(int r = 0; r < rows; ++r){
-        for(int c = 0; c <cols;++c){
-            int idx = r * cols + c;
-            coverage_data_packed_[idx] = coverage_data_[r][c];
-        }
-    }
-    printf("packed[0]: ");
-    for(int i = 0; i < cols; i++){
-        printf("%f ",coverage_data_packed_[i]);
-    }
-    printf("\n");*/
 }
 
 bool Database::LoadCoveragePack(const QString& file_name){
@@ -270,14 +291,18 @@ bool Database::LoadData(const QString& file_name){
     if(file.open(QIODevice::ReadOnly| QIODevice::Text)){
         QString header_line = file.readLine().simplified();
         QStringList headers = header_line.split(',');
-        headers.removeAt(0);
+        headers.removeAt(0);    //pop first column, this value identifies the subject name column
         SetHeader(headers);
 
         while(!file.atEnd()){
             QString line = file.readLine().simplified();
             QStringList tokens = line.split(',');
+
+            //column 0 is for subjects, extract and pop from tokens.
             subjects_data_.push_back(tokens[0].toInt());
-            tokens.removeAt(0); //column 0 is for subjects, remove.
+            tokens.removeAt(0);
+
+
             AppendRow(tokens);
         }
         file.close();
@@ -289,18 +314,45 @@ bool Database::LoadData(const QString& file_name){
     return false;
 }
 
+
+
+Database::DataColumn Database::get_column(const int& idx){
+    DataColumn ret;
+    if(idx < 0 || idx >= NumColumns()){
+        qDebug() << "Invalid index for get_column: 0 <= " << idx << " <= " << NumColumns() << "\n";
+        return ret;
+    }
+
+    for(int i = 0; i < NumRows(); ++i){
+        ret.push_back(data_[i][idx]);
+    }
+    return ret;
+}
+void Database::append_column(const DataColumn& col, const QString& name, const bool& rebuild_metrics){
+    if(col.size() != NumRows()){
+        qDebug() << "Cannot append column of length <" << col.size() << "> to <" << NumRows() << "> rows.  Must be equal length.\n";
+        return;
+    }
+    header_row_.push_back(name);
+    header_map_[name] = header_row_.size() - 1;
+    for(size_t i = 0; i < col.size(); ++i){
+        data_[i].push_back(col[i]);
+    }
+    if(rebuild_metrics)BuildMetrics();
+}
 bool Database::SaveData(const QString& file_name){
     QFile file(file_name);
     if(file.open(QIODevice::WriteOnly| QIODevice::Text)){
         QTextStream out(&file);
-        out << header_row_[0];
-        for(int c = 1; c < NumColumns(); ++c){
+        out << "SubjectID";
+        for(int c = 0; c < NumColumns(); ++c){
             out << "," + header_row_[c];
         }
         out <<"\n";
+
         for(int r = 0; r < NumRows(); ++r){
-            out << QString::number(data_[r][0]);
-            for(int c = 1; c < NumColumns(); ++c){
+            out << subjects_data_[r];
+            for(int c = 0; c < NumColumns(); ++c){
                 out << ","+QString::number(data_[r][c]);
             }
             out << "\n";
@@ -313,8 +365,25 @@ bool Database::SaveData(const QString& file_name){
     return true;
 }
 
+int Database::get_header_index(const QString& title){
+    return header_map_[title];
+}
+
 void Database::Clear(){
     data_.clear();
+    header_row_.clear();
+    header_map_.clear();
+    coverage_data_.clear();
+    subjects_data_.clear();
+    subjects_coverage_data_.clear();
+    min_.clear();
+    max_.clear();
+    average_.clear();
+
+    if(coverage_data_packed_){
+        delete [] coverage_data_packed_;
+        coverage_data_packed_ = NULL;
+    }
 }
 
 bool Database::Empty(){

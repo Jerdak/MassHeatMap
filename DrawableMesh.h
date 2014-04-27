@@ -7,19 +7,30 @@
 #include "Database.h"
 
 class DrawableMesh;
+// Drawable mesh worker
+//
+// Threaded handler for asynchronous calls to CUDA to update the
+// colored heat map render.
 class DrawableWorker : public QObject {
     Q_OBJECT;
 public:
     explicit DrawableWorker(DrawableMesh *mesh,Database*db,QObject *parent=0);
-    void doWork();
+
 signals:
     void colorsUpdated();
 
 public slots:
+    // Called in a loop to check if color data needs to be refreshed by CUDA.  Should never be called by the user.
     void checkWork();
+
+    // Request an update from CUDA (only most recent request is honored)
     void requestWork();
+
+    // Kill worker
     void abort();
 private:
+    void doWork();
+
     DrawableMesh *mesh_;
     Database *db_;
     bool running_;
@@ -27,6 +38,8 @@ private:
     bool work_;
 
     QMutex data_mutex_;
+
+    // Wrapper around CUDA
     CudaWrapper processor_;
 };
 

@@ -31,6 +31,7 @@ public:
     void SetFilter(const osg::Vec3f& p, const float& radius);
     void SetFilter(const osg::Vec3f& center, const float& height, const float& width, const float& angle);
 
+    float Variance();
     osg::Vec3f  get_filter_position(){ return filter_position_;}
     float  get_filter_width() { return filter_width_; }
     float  get_filter_height(){ return filter_height_;}

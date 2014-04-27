@@ -101,7 +101,7 @@ void DrawableMesh::dbgChangeColor(){
     }
     geom_->setColorArray(colors_, osg::Array::BIND_PER_VERTEX);
 }
-
+#include <osg/Geometry>
 void DrawableMesh::Load(const QString file_name){
     {
         QMutexLocker lock(&data_mutex_);
@@ -119,7 +119,9 @@ void DrawableMesh::Load(const QString file_name){
         }
 
         geom_ = drawable->asGeometry();
-        geom_->setUseVertexBufferObjects(false);    //set to false to allow runtime color manipulation
+        geom_->setUseVertexBufferObjects(false);                        //set to false to allow runtime color manipulation
+        geom_->setDataVariance(osg::Geometry::DataVariance::DYNAMIC);   //set to dynamic to optimize model for changing data
+
         if(!geom_){
             qDebug() << "Drawable is not a Geometry";
             return;

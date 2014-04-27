@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QGraphicsScene>
 #include <QRect>
+#include <QImage>
 #include <vector>
 
 namespace Ui {
@@ -34,8 +35,10 @@ protected:
     void paintInactiveSubjects(QPaintEvent *event, QPainter &painter);
     void paintPlanes(QPaintEvent *event, QPainter &painter);
     void paintFilters(QPaintEvent *event, QPainter &painter);
+    void paintText(QPaintEvent *event, QPainter &painter);
 private:
     float ellipse_height_;
+    QImage draw_image_;
     QPoint left_mouse_point_;
     QPoint current_mouse_point_;
     bool left_mouse_down_;
@@ -48,6 +51,7 @@ private:
     int width_;
     int height_;
     int spacing_;
+    float wheel_scale_;
 };
 
 #endif // DRAWWINDOW_H
