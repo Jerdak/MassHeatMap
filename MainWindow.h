@@ -5,6 +5,7 @@
 #include "Database.h"
 #include "DrawableMesh.h"
 #include "qcustomplot.h"
+#include "MeshSegmenter.h"
 namespace Ui {
     class MainWindow;
 }
@@ -36,6 +37,7 @@ private:
     osg::MatrixTransform *parent_transform_;
     OptionWindow *option_window_;
     DrawWindow *draw_window_;
+    MeshSegmenter *mesh_seg;
 private slots:
     void close();
 };

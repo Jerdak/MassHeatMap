@@ -13,7 +13,8 @@ DrawableWorker::DrawableWorker(DrawableMesh *mesh,Database*db,QObject *parent):
     mesh_(mesh),
     abort_(false),
     running_(false),
-    work_(false),
+    working_(false),
+    request_work_(true),
     db_(db),
     data_mutex_(QMutex::Recursive)
 {
@@ -21,7 +22,7 @@ DrawableWorker::DrawableWorker(DrawableMesh *mesh,Database*db,QObject *parent):
 
 void DrawableWorker::requestWork(){
     QMutexLocker lock(&data_mutex_);
-    work_ = true;
+    request_work_ = true;
 }
 
 void DrawableWorker::checkWork(){
@@ -33,7 +34,10 @@ void DrawableWorker::checkWork(){
     }
     {   //lock and work (if work has been queued
         QMutexLocker lock(&data_mutex_);
-        if(work_)doWork();
+        if(request_work_ && !working_){
+            request_work_ = false;
+            doWork();
+        }
     }
     QTimer::singleShot(15,this,SLOT(checkWork()));
 }
@@ -44,9 +48,10 @@ void DrawableWorker::doWork(){
         if(abort_) {
             return;
         }
+        working_ = true;
     }
 
-    {   //color
+    {
         QMutexLocker lock(mesh_->get_mutex());
         processor_.Reduce(
                     mesh_->get_colors(),
@@ -56,7 +61,8 @@ void DrawableWorker::doWork(){
                     db_->get_coverage_data(),
                     db_->NumPackRows()*db_->NumPackColumns());
     }
-    work_ = false;
+    working_ = false;
+
     emit colorsUpdated();
 }
 
@@ -85,7 +91,10 @@ void DrawableMesh::requestWork(){
 
 void DrawableMesh::colorsUpdated(){
     QMutexLocker lock(&data_mutex_);
-    geom_->setColorArray(colors_, osg::Array::BIND_PER_VERTEX);
+    geom_->getGlobalReferencedMutex()->lock();
+    geom_->setColorArray(colors_.get(), osg::Array::BIND_PER_VERTEX);
+    geom_->getGlobalReferencedMutex()->unlock();
+    mesh_segmenter_->Update(colors_);
 }
 
 void DrawableMesh::dbgChangeColor(){
@@ -99,7 +108,9 @@ void DrawableMesh::dbgChangeColor(){
             (*colors_)[i] = osg::Vec4f(0.5f,0.5f,0.5f,1.0f);
         }
     }
-    geom_->setColorArray(colors_, osg::Array::BIND_PER_VERTEX);
+    geom_->getGlobalReferencedMutex()->lock();
+    geom_->setColorArray(colors_.get(), osg::Array::BIND_PER_VERTEX);
+    geom_->getGlobalReferencedMutex()->unlock();
 }
 #include <osg/Geometry>
 void DrawableMesh::Load(const QString file_name){
@@ -134,7 +145,10 @@ void DrawableMesh::Load(const QString file_name){
         for(int i = 0; i < vertices->getNumElements(); ++i){
             colors_->push_back(osg::Vec4f(0.5f,0.5f,0.5f,1.0f));
         }
-        geom_->setColorArray(colors_, osg::Array::BIND_PER_VERTEX);
+        geom_->getGlobalReferencedMutex()->lock();
+        geom_->setColorArray(colors_.get(), osg::Array::BIND_PER_VERTEX);
+        geom_->getGlobalReferencedMutex()->unlock();
+
     }
 
     // Start a single request to build first heatmap

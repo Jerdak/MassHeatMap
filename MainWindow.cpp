@@ -8,17 +8,37 @@
 #include <osg/Node>
 #include <QTimer>
 #include "Database.h"
+#include "ParallelPlaneManager.h"
 #include <osgViewer/CompositeViewer>
 #include <osg/MatrixTransform>
+#include <osg/ref_ptr>
+#include <osg/Array>
+#include <QSettings>
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
+    mesh_seg(NULL),
     ui(new Ui::MainWindow)
 {
+    ui->setupUi(this);
+
+    QSettings settings("massheatmap.ini",QSettings::IniFormat);
+    QString hue_image_name = settings.value("hue_image","./images/hue_range.png").toString();
+    QString mesh_base_name = settings.value("mesh_base","./data/male_apose_closed.ply").toString();
+    QString mesh_segmented_name = settings.value("mesh_segmented","./data/male_apose_closed_segments.obj").toString();
+
+    QPixmap pm(QString::fromUtf8(hue_image_name.toAscii()));
+    ui->label->setPixmap(pm.scaled(ui->label->width(),ui->label->height()));
+
     parent_transform_ = new osg::MatrixTransform();
+    mesh_seg = new MeshSegmenter(ui->plotWidget);
+    mesh_seg->Load(mesh_segmented_name);
 
     plane_manager_ = std::move(std::unique_ptr<ParallelPlaneManager>(new ParallelPlaneManager(parent_transform_,5,1)));
     mesh_ = std::move(std::unique_ptr<DrawableMesh>(new DrawableMesh(plane_manager_->get_database())));
-    mesh_->Load("male_apose_closed.ply");
+    mesh_->Load(mesh_base_name);
+    mesh_->set_mesh_segmenter(mesh_seg);
+
     connect(plane_manager_.get(),SIGNAL(ActiveSubjectsChanged()),mesh_.get(),SLOT(requestWork()));
 
     QWidget* widget1 = addParallelPlaneWidget( createGraphicsWindow(0,0,100,100) );
@@ -26,11 +46,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // USE SINGLE THREADED.  OSG does not play nice with Qt Threads, setting this to anythign else results
     // in numerous crashes in OSG's draw methods.
+    setRunFrameScheme(osgViewer::ViewerBase::ON_DEMAND);
     setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
 
     // disable the default setting of viewer.done() by pressing Escape.
     setKeyEventSetsDone(0);
-    ui->setupUi(this);
+
 
     ui->gridLayout->addWidget(widget1,0,0);
     ui->gridLayout_2->addWidget(widget2,0,0);
@@ -44,7 +65,7 @@ MainWindow::MainWindow(QWidget *parent) :
     plane_manager_->Redraw();
 
     ui->statusBar->showMessage("Scene Render Complete.");
-    testBarChartDemo(ui->plotWidget);
+
     connect( &_timer, SIGNAL(timeout()), this, SLOT(update()) );
     connect(ui->actionClose,SIGNAL(triggered()),this,SLOT(close()));
 
@@ -55,6 +76,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    if(mesh_seg)delete mesh_seg;
     delete ui;
 }
 void MainWindow::close(){
@@ -63,7 +85,6 @@ void MainWindow::close(){
 QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
 {
     osgViewer::View* view = new osgViewer::View;
-
     addView( view );
 
     osg::Camera* camera = view->getCamera();
@@ -95,6 +116,7 @@ QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
 QWidget* MainWindow::addModellerWidget( osgQt::GraphicsWindowQt* gw, osg::ref_ptr<osg::Node> scene)
 {
     osgViewer::View* view = new osgViewer::View;
+
     addView( view );
     osg::Camera* camera = view->getCamera();
     camera->setGraphicsContext( gw );

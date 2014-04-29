@@ -3,6 +3,7 @@
 
 #include <osg/Vec3f>
 #include <osg/Vec4f>
+#include <osgText/Text>
 #include "Database.h"
 
 class ParallelPlane : public QObject
@@ -54,6 +55,8 @@ public:
     bool InFilter(const int& row);
 
     void UpdateText();
+
+    QString get_text(){return QString(text_->getText().createUTF8EncodedString().c_str());}
 private:
 
     // Flat texture creation utility (pulled from OpenSceneGraph examples)

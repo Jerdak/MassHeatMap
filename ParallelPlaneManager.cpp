@@ -43,6 +43,7 @@ ParallelPlaneManager::~ParallelPlaneManager(){
 }
 
 void ParallelPlaneManager::InitializeSceneGraph(){
+    QMutexLocker locker(&data_mutex_);
     geode_ = new osg::Geode();
 
     osg::StateSet* stateset = new osg::StateSet;
@@ -62,6 +63,7 @@ void ParallelPlaneManager::InitializeSceneGraph(){
     osg::ref_ptr<osg::Geometry> lineGeom = new osg::Geometry();
     lineGeom->setUseVertexBufferObjects(false);
     lineGeom->setStateSet(stateset);
+
 
     geode_->addDrawable(pointGeom);
     geode_->addDrawable(lineGeom);
@@ -98,6 +100,8 @@ void ParallelPlaneManager::RedrawLines(const int& index0,const int& index1,osg::
 }
 
 void ParallelPlaneManager::Redraw(){
+    QMutexLocker locker(&data_mutex_);
+
     UpdateActiveSubjects();
 
     osg::Geometry* pointsGeom = geode_->getDrawable(0)->asGeometry();

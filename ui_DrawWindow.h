@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'DrawWindow.ui'
 **
-** Created: Thu Apr 24 12:30:51 2014
+** Created: Tue Apr 29 02:51:14 2014
 **      by: Qt User Interface Compiler version 4.8.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -46,7 +46,6 @@ public:
         gridLayout->setObjectName(QString::fromUtf8("gridLayout"));
         gridLayout->setContentsMargins(0, 0, 0, 0);
         DrawWindow->setCentralWidget(centralwidget);
-        gridLayoutWidget->raise();
         menubar = new QMenuBar(DrawWindow);
         menubar->setObjectName(QString::fromUtf8("menubar"));
         menubar->setGeometry(QRect(0, 0, 800, 21));
@@ -62,7 +61,7 @@ public:
 
     void retranslateUi(QMainWindow *DrawWindow)
     {
-        DrawWindow->setWindowTitle(QApplication::translate("DrawWindow", "MainWindow", 0, QApplication::UnicodeUTF8));
+        DrawWindow->setWindowTitle(QApplication::translate("DrawWindow", "PCA Photo Booth", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 
 };

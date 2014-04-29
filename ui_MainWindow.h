@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'MainWindow.ui'
 **
-** Created: Thu Apr 24 12:30:51 2014
+** Created: Tue Apr 29 02:51:14 2014
 **      by: Qt User Interface Compiler version 4.8.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -17,6 +17,7 @@
 #include <QtGui/QGridLayout>
 #include <QtGui/QGroupBox>
 #include <QtGui/QHeaderView>
+#include <QtGui/QLabel>
 #include <QtGui/QMainWindow>
 #include <QtGui/QMenu>
 #include <QtGui/QMenuBar>
@@ -39,6 +40,7 @@ public:
     QGridLayout *gridLayout_2;
     QGroupBox *groupBox_2;
     QGroupBox *groupBox_3;
+    QLabel *label;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QStatusBar *statusBar;
@@ -47,7 +49,7 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
-        MainWindow->resize(1164, 773);
+        MainWindow->resize(1164, 810);
         MainWindow->setMinimumSize(QSize(1164, 773));
         QPalette palette;
         QBrush brush(QColor(0, 0, 0, 255));
@@ -92,12 +94,17 @@ public:
         gridLayout->setContentsMargins(0, 0, 0, 0);
         groupBox = new QGroupBox(centralWidget);
         groupBox->setObjectName(QString::fromUtf8("groupBox"));
-        groupBox->setGeometry(QRect(10, 0, 1141, 341));
+        groupBox->setGeometry(QRect(10, 0, 1141, 337));
+        QPalette palette1;
+        palette1.setBrush(QPalette::Active, QPalette::WindowText, brush4);
+        palette1.setBrush(QPalette::Inactive, QPalette::WindowText, brush4);
+        palette1.setBrush(QPalette::Disabled, QPalette::WindowText, brush5);
+        groupBox->setPalette(palette1);
         groupBox->setFlat(false);
         groupBox->setCheckable(false);
         plotWidget = new QCustomPlot(centralWidget);
         plotWidget->setObjectName(QString::fromUtf8("plotWidget"));
-        plotWidget->setGeometry(QRect(589, 369, 551, 341));
+        plotWidget->setGeometry(QRect(589, 369, 551, 381));
         gridLayoutWidget_2 = new QWidget(centralWidget);
         gridLayoutWidget_2->setObjectName(QString::fromUtf8("gridLayoutWidget_2"));
         gridLayoutWidget_2->setGeometry(QRect(20, 370, 531, 341));
@@ -108,10 +115,23 @@ public:
         gridLayout_2->setContentsMargins(0, 0, 0, 0);
         groupBox_2 = new QGroupBox(centralWidget);
         groupBox_2->setObjectName(QString::fromUtf8("groupBox_2"));
-        groupBox_2->setGeometry(QRect(580, 349, 571, 371));
+        groupBox_2->setGeometry(QRect(580, 349, 571, 411));
+        QPalette palette2;
+        palette2.setBrush(QPalette::Active, QPalette::WindowText, brush4);
+        palette2.setBrush(QPalette::Inactive, QPalette::WindowText, brush4);
+        palette2.setBrush(QPalette::Disabled, QPalette::WindowText, brush5);
+        groupBox_2->setPalette(palette2);
         groupBox_3 = new QGroupBox(centralWidget);
         groupBox_3->setObjectName(QString::fromUtf8("groupBox_3"));
-        groupBox_3->setGeometry(QRect(10, 350, 551, 371));
+        groupBox_3->setGeometry(QRect(10, 350, 551, 411));
+        QPalette palette3;
+        palette3.setBrush(QPalette::Active, QPalette::WindowText, brush4);
+        palette3.setBrush(QPalette::Inactive, QPalette::WindowText, brush4);
+        palette3.setBrush(QPalette::Disabled, QPalette::WindowText, brush5);
+        groupBox_3->setPalette(palette3);
+        label = new QLabel(groupBox_3);
+        label->setObjectName(QString::fromUtf8("label"));
+        label->setGeometry(QRect(10, 370, 531, 31));
         MainWindow->setCentralWidget(centralWidget);
         groupBox_2->raise();
         groupBox_3->raise();
@@ -139,11 +159,12 @@ public:
 
     void retranslateUi(QMainWindow *MainWindow)
     {
-        MainWindow->setWindowTitle(QApplication::translate("MainWindow", "MainWindow", 0, QApplication::UnicodeUTF8));
+        MainWindow->setWindowTitle(QApplication::translate("MainWindow", "MassHeatMap", 0, QApplication::UnicodeUTF8));
         actionClose->setText(QApplication::translate("MainWindow", "Close", 0, QApplication::UnicodeUTF8));
         groupBox->setTitle(QApplication::translate("MainWindow", "  Parallel Planes ", 0, QApplication::UnicodeUTF8));
         groupBox_2->setTitle(QApplication::translate("MainWindow", " Statistics ", 0, QApplication::UnicodeUTF8));
         groupBox_3->setTitle(QApplication::translate("MainWindow", " Model Renderer", 0, QApplication::UnicodeUTF8));
+        label->setText(QApplication::translate("MainWindow", "TextLabel", 0, QApplication::UnicodeUTF8));
         menuFile->setTitle(QApplication::translate("MainWindow", "File", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 

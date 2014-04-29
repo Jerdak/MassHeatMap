@@ -5,6 +5,7 @@
 #include <QMutex>
 #include "CudaWrapper.h"
 #include "Database.h"
+#include "MeshSegmenter.h"
 
 class DrawableMesh;
 // Drawable mesh worker
@@ -35,7 +36,8 @@ private:
     Database *db_;
     bool running_;
     bool abort_;
-    bool work_;
+    bool working_;
+    bool request_work_;
 
     QMutex data_mutex_;
 
@@ -59,6 +61,10 @@ public:
     osg::ref_ptr<osg::Geometry> get_geometry(){return geom_;}
     osg::ref_ptr<osg::Vec4Array> get_colors(){return colors_;}
 
+    void set_mesh_segmenter(MeshSegmenter *mesh_segmenter){
+        mesh_segmenter_ = mesh_segmenter;
+    }
+
     QMutex *get_mutex(){return &data_mutex_;}
 
 public slots:
@@ -69,6 +75,8 @@ private:
     QThread *worker_thread_;
     DrawableWorker *worker_;
     Database *db_;
+    MeshSegmenter *mesh_segmenter_;
+
     osg::ref_ptr<osg::Node> node_;
     osg::ref_ptr<osg::Geode> geode_;
     osg::ref_ptr<osg::Geometry> geom_;

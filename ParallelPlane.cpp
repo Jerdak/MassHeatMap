@@ -89,7 +89,7 @@ ParallelPlane::ParallelPlane(osg::Geode *geode,osg::MatrixTransform *transform,D
         text_->setFont(font);
         text_->setColor(layoutColor);
         text_->setCharacterSize(layoutCharacterSize);
-        text_->setPosition(osg::Vec3(0.02,0.04,0.01f));
+        text_->setPosition(osg::Vec3(0.02,0.1,0.01f));
 
         // right to left layouts would be used for hebrew or arabic fonts.
         text_->setLayout(osgText::Text::LEFT_TO_RIGHT);
@@ -113,7 +113,7 @@ void ParallelPlane::UpdateText(){
     float var = Variance();
 
     QString var_text = (var<0)?"NA":QString("Variance:%1").arg(var);
-    text_->setPosition(osg::Vec3(0.02,0.04,0.01f));
+    text_->setPosition(osg::Vec3(0.02,0.1,0.01f));
     QString txt = QString("XAxis: %1\nYAxis: %2\n%3").arg(db_->get_header(axes_[0])).arg(db_->get_header(axes_[1])).arg(var_text);
     printf("Text: %s\n",txt.toStdString().c_str());
     text_->setText(txt.toStdString());

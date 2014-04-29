@@ -23,7 +23,8 @@ SOURCES += main.cpp\
     CudaWrapper.cpp \
     HeatColor.cpp \
     OptionWindow.cpp \
-    DrawWindow.cpp
+    DrawWindow.cpp \
+    MeshSegmenter.cpp
 
 HEADERS  += MainWindow.h \
     Stable.h \
@@ -36,7 +37,8 @@ HEADERS  += MainWindow.h \
     CudaWrapper.h \
     HeatColor.h \
     OptionWindow.h \
-    DrawWindow.h
+    DrawWindow.h \
+    MeshSegmenter.h
 
 #OTHER_FILES += CudaKernel.cu
 FORMS    += MainWindow.ui \
@@ -64,48 +66,6 @@ else:unix:!macx: LIBS += -L$$PWD/../../Libraries/opencv/build/x86/vc10/lib/ -lop
 INCLUDEPATH += $$PWD/../../Libraries/opencv/build/include
 DEPENDPATH += $$PWD/../../Libraries/opencv/build/x86/vc10
 
-### CUDA settings <-- may change depending on your system
-
-#CUDA_DIR = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v5.5"            # Path to cuda toolkit install
-
-
-#CUDA_OBJECTS_DIR = $$PWD/CudaObj
-#CUDA_LIBS = cuda cudart
-#CUDA_INC = $$join(INCLUDEPATH,'" -I"','-I"','"')
-#NVCC_LIBS = $$join(CUDA_LIBS,' -l','-l', '')
-#CUDA_LIB = $$CUDA_DIR\\lib
-#CUDA_BIN = $$CUDA_DIR\\bin
-#SYSTEM_NAME = Win32         # Depending on your system either 'Win32', 'x64', or 'Win64'
-#SYSTEM_TYPE = 32            # '32' or '64', depending on your system
-#NVCCFLAGS = --use_fast_math --cl-version 2010
-#CUDA_ARCH = sm_30
-
-#QMAKE_LIBDIR += $$CUDA_LIB\\$$SYSTEM_NAME
-#DEPENDPATH += $$CUDA_LIB\\$$SYSTEM_NAME
-
-#QMAKE_LFLAGS_RELEASE = /NODEFAULTLIB:msvcrt.lib
-#QMAKE_LFLAGS_DEBUG   = /NODEFAULTLIB:msvcrtd.lib
-
-#LIBS += -lcudart \
-#        -lcuda
-
-
-#CONFIG(debug, debug|release) {
-#    # Debug mode
-#    cuda_d.input = OTHER_FILES
-#    cuda_d.output = $$CUDA_OBJECTS_DIR/${QMAKE_FILE_BASE}_cuda.o
-#    cuda_d.commands = $$CUDA_DIR/bin/nvcc.exe -c -g -G -D_DEBUG $$NVCC_OPTIONS $$CUDA_INC $$NVCC_LIBS $$NVCCFLAGS --machine $$SYSTEM_TYPE -arch=$$CUDA_ARCH -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME}
-#    cuda_d.dependency_type = TYPE_C
-#    QMAKE_EXTRA_COMPILERS += cuda_d
-#}
-#else {
-#    # Release mode
-#    cuda.input = OTHER_FILES
-#    cuda.output = $$CUDA_OBJECTS_DIR/${QMAKE_FILE_BASE}_cuda.o
-#    cuda.commands = $$CUDA_DIR/bin/nvcc.exe $$NVCC_OPTIONS $$CUDA_INC $$NVCC_LIBS $$NVCCFLAGS -m$$SYSTEM_TYPE -arch=$$CUDA_ARCH -c -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME}
-#    cuda.dependency_type = TYPE_C
-#    QMAKE_EXTRA_COMPILERS += cuda
-#}
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/Dependencies/CudaTest/release/ -lCudaTest
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/Dependencies/CudaTest/debug/ -lCudaTest

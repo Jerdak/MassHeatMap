@@ -14,7 +14,7 @@ public:
 
     // Add a new plane to the plane manager
     void AddNewPlane(const int& axis0, const int& axis1, const bool& rebuild=false);
-    void AddNewPlane(const QString& axis0, const QString& axis1, const bool& rebuild=false);
+    void AddNewPlane(const QString &axis0, const QString &axis1, const bool& rebuild=false);
 
     // Load database data (MUST BE DONE BEFORE CALLING AddNewPlane())
     void LoadDatabase(const QString& database_name,const QString& pack_name);

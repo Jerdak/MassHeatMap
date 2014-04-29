@@ -140,9 +140,9 @@ void Database::FilterByCoverage(){
     data_ = newData;
     subjects_data_ = newSubjects;
 
-    for(int i = 0; i < data_.size(); ++i){
-        qDebug() << subjects_data_[i] << ": " << data_[i][0] << " Size: " << data_[i].size();
-    }
+//    for(int i = 0; i < data_.size(); ++i){
+//        qDebug() << subjects_data_[i] << ": " << data_[i][0] << " Size: " << data_[i].size();
+//    }
 
 }
 

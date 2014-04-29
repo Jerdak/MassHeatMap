@@ -269,7 +269,7 @@ void DrawWindow::paintText(QPaintEvent *event, QPainter &painter){
     painter.setBrush(brush);
     for(int p = 0; p < plane_manager_->size(); p++){
 
-        painter.drawText(x,y+10, QString("Variance: %1").arg(plane_manager_->get_plane(p)->Variance()));
+        painter.drawText(x,y+10, plane_manager_->get_plane(p)->get_text());
         if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
             y += height_ + spacing_;
             x = 0;
