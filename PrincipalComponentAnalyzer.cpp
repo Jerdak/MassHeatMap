@@ -13,19 +13,19 @@ Database PrincipalComponentAnalyzer::GeneratePCATable(const Database& input_db){
 
     float min = std::numeric_limits<float>::max();
     float max = std::numeric_limits<float>::min();
-    for(int c = 0; c < input_db.NumColumns(); c++){
+    for(size_t c = 0; c < input_db.NumColumns(); c++){
         data_mean.at<float>(0,c)= 0.0f;
     }
 
-    for(int r = 0; r < input_db.NumRows(); r++){
-        for(int c = 0; c < input_db.NumColumns(); c++){
+    for(size_t r = 0; r < input_db.NumRows(); r++){
+        for(size_t c = 0; c < input_db.NumColumns(); c++){
             data_mat.at<float>(r,c) = input_db.get_data()[r][c];
             data_mean.at<float>(0,c) += input_db.get_data()[r][c];
             if(data_mat.at<float>(r,c) < min)min=data_mat.at<float>(r,c);
             if(data_mat.at<float>(r,c) > max)max=data_mat.at<float>(r,c);
         }
     }
-    for(int c = 0; c < input_db.NumColumns(); c++){
+    for(size_t c = 0; c < input_db.NumColumns(); c++){
         data_mean.at<float>(0,c) /= (float)input_db.NumRows();
     }
     printf("Min data value: %f\n",min);
@@ -59,7 +59,7 @@ Database PrincipalComponentAnalyzer::GeneratePCATable(const Database& input_db){
     }
     QStringList eigens;
     for(int i = 0; i < eigenvalues.rows; i++){
-        if(i<10)printf("Eigen[%d]: %f = %f\%\n",i,eigenvalues.at<float>(i,0),eigenvalues.at<float>(i,0)/total_variance);
+        if(i<10)printf("Eigen[%d]: %f = %f%\n",i,eigenvalues.at<float>(i,0),eigenvalues.at<float>(i,0)/total_variance);
         if(i<10)printf("Mean[%d]: %f\n",i,mean.at<float>(0,i));
         if(i<10)printf("Mean[%d]: %f\n",i,data_mean.at<float>(0,i));
         eigens<<QString::number(eigenvalues.at<float>(i,0)/total_variance);

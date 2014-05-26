@@ -60,14 +60,14 @@ void Database::dbgData(const int& size){
     int rows = (size==-1)?NumRows():size;
 
     QString temp = "";
-    for(int c = 0; c < NumColumns(); ++c){
+    for(size_t c = 0; c < NumColumns(); ++c){
         temp += header_row_[c] + " ";
     }
     qDebug() << temp;
 
     for(int r = 0; r < rows; ++r){
         temp = "";
-        for(int c = 0; c < NumColumns(); ++c){
+        for(size_t c = 0; c < NumColumns(); ++c){
             temp += QString::number(data_[r][c]) + " ";
         }
         qDebug() << temp;
@@ -112,15 +112,15 @@ void Database::BuildMetrics(){
     std::fill(max_.begin(), max_.begin() + max_.size(),std::numeric_limits<float>::min());  //max gets min limit so that next comparison will be lower
     std::fill(average_.begin(), average_.begin() + average_.size(),0.0f);
 
-    for(int r = 0; r < NumRows(); ++r){
-        for(int c = 0; c < NumColumns(); ++c){
+    for(size_t r = 0; r < NumRows(); ++r){
+        for(size_t c = 0; c < NumColumns(); ++c){
             if(data_[r][c] < min_[c])min_[c] = data_[r][c];
             if(data_[r][c] > max_[c])max_[c] = data_[r][c];
             average_[c] += data_[r][c];
         }
 
     }
-    for(int c = 0; c < NumColumns(); ++c){
+    for(size_t c = 0; c < NumColumns(); ++c){
         average_[c]/= float(NumRows());
     }
 }
@@ -128,10 +128,10 @@ void Database::FilterByCoverage(){
     Data newData;
     std::vector<int> newSubjects;
     std::map<int,char> filterMap;
-    for(int i = 0; i < subjects_coverage_data_.size(); ++i){
+    for(size_t i = 0; i < subjects_coverage_data_.size(); ++i){
         filterMap[subjects_coverage_data_[i]] = 0;
     }
-    for(int i = 0; i < subjects_data_.size();++i){
+    for(size_t i = 0; i < subjects_data_.size();++i){
         if(filterMap.find(subjects_data_[i]) != filterMap.end()){
             newData.push_back(data_[i]);
             newSubjects.push_back(subjects_data_[i]);
@@ -139,11 +139,6 @@ void Database::FilterByCoverage(){
     }
     data_ = newData;
     subjects_data_ = newSubjects;
-
-//    for(int i = 0; i < data_.size(); ++i){
-//        qDebug() << subjects_data_[i] << ": " << data_[i][0] << " Size: " << data_[i].size();
-//    }
-
 }
 
 float Database::Min(const size_t& column) {
@@ -284,6 +279,7 @@ bool Database::LoadCoveragePack(const QString& file_name){
     }
 
     qDebug() << "Unable to open CSV file <" << file_name << "> for reading\n";
+    return false;
 }
 
 bool Database::LoadData(const QString& file_name){
@@ -323,7 +319,7 @@ Database::DataColumn Database::get_column(const int& idx){
         return ret;
     }
 
-    for(int i = 0; i < NumRows(); ++i){
+    for(size_t i = 0; i < NumRows(); ++i){
         ret.push_back(data_[i][idx]);
     }
     return ret;
@@ -345,14 +341,14 @@ bool Database::SaveData(const QString& file_name){
     if(file.open(QIODevice::WriteOnly| QIODevice::Text)){
         QTextStream out(&file);
         out << "SubjectID";
-        for(int c = 0; c < NumColumns(); ++c){
+        for(size_t c = 0; c < NumColumns(); ++c){
             out << "," + header_row_[c];
         }
         out <<"\n";
 
-        for(int r = 0; r < NumRows(); ++r){
+        for(size_t r = 0; r < NumRows(); ++r){
             out << subjects_data_[r];
-            for(int c = 0; c < NumColumns(); ++c){
+            for(size_t c = 0; c < NumColumns(); ++c){
                 out << ","+QString::number(data_[r][c]);
             }
             out << "\n";

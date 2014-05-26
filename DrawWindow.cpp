@@ -46,8 +46,6 @@ void DrawWindow::leftMouseDown(QMouseEvent *event){
             int rx = rects_[i].x();
             int ry = rects_[i].y();
 
-            float x = (ex - rx) / (float)width_;
-            float y = 1.0 - ((ey - ry) / (float)height_); // make sure to flip the y value
             left_mouse_selection_ = i;
             break;
         }
@@ -163,7 +161,7 @@ void DrawWindow::paintActiveSubjects(QPaintEvent *event, QPainter &painter){
         y = 0;
         for(int p = 0; p < plane_manager_->size(); p++){
             ParallelPlane* pl = plane_manager_->get_plane(p);
-            osg::Vec3f pt = pl->ReverseDomain(subject);
+            osg::Vec3f pt = pl->Domain(subject);
             int dx = pt.x() * width_ + x;
             int dy = (1-pt.y()) * height_ + y;//flip, qt images rendered from top left.
             painter.drawEllipse(dx,dy,5,5);
@@ -193,7 +191,7 @@ void DrawWindow::paintInactiveSubjects(QPaintEvent *event, QPainter &painter){
         y = 0;
         for(int p = 0; p < plane_manager_->size(); p++){
             ParallelPlane* pl = plane_manager_->get_plane(p);
-            osg::Vec3f pt = pl->ReverseDomain(subject);
+            osg::Vec3f pt = pl->Domain(subject);
             int dx = pt.x() * width_ + x;
             int dy = (1-pt.y()) * height_ + y;//flip, qt images rendered from top left.
             painter.drawEllipse(dx,dy,5,5);
@@ -269,7 +267,7 @@ void DrawWindow::paintText(QPaintEvent *event, QPainter &painter){
     painter.setBrush(brush);
     for(int p = 0; p < plane_manager_->size(); p++){
 
-        painter.drawText(x,y+10, plane_manager_->get_plane(p)->get_text());
+        //painter.drawText(x,y+10, plane_manager_->get_plane(p)->get_text());
         if(x + 2*width_ + spacing_ > ui->centralwidget->width()){
             y += height_ + spacing_;
             x = 0;

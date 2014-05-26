@@ -10,51 +10,25 @@
 #include "Database.h"
 #include "ParallelPlaneManager.h"
 #include <osgViewer/CompositeViewer>
-#include <osg/MatrixTransform>
-#include <osg/ref_ptr>
-#include <osg/Array>
 #include <QSettings>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    mesh_seg(NULL),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
     QSettings settings("massheatmap.ini",QSettings::IniFormat);
-    QString hue_image_name = settings.value("hue_image","./images/hue_range.png").toString();
-    QString mesh_base_name = settings.value("mesh_base","./data/male_apose_closed.ply").toString();
-    QString mesh_segmented_name = settings.value("mesh_segmented","./data/male_apose_closed_segments.obj").toString();
+    QString hue_image_name = settings.value("hue_image","../images/hue_range.png").toString();
+    QString mesh_base_name = settings.value("mesh_base","../data/male_apose_closed.ply").toString();
+    QString mesh_segmented_name = settings.value("mesh_segmented","../data/male_apose_closed_segments.obj").toString();
 
-    QPixmap pm(QString::fromUtf8(hue_image_name.toAscii()));
-    ui->label->setPixmap(pm.scaled(ui->label->width(),ui->label->height()));
-
-    parent_transform_ = new osg::MatrixTransform();
-    mesh_seg = new MeshSegmenter(ui->plotWidget);
-    mesh_seg->Load(mesh_segmented_name);
-
-    plane_manager_ = std::move(std::unique_ptr<ParallelPlaneManager>(new ParallelPlaneManager(parent_transform_,5,1)));
-    mesh_ = std::move(std::unique_ptr<DrawableMesh>(new DrawableMesh(plane_manager_->get_database())));
-    mesh_->Load(mesh_base_name);
-    mesh_->set_mesh_segmenter(mesh_seg);
-
-    connect(plane_manager_.get(),SIGNAL(ActiveSubjectsChanged()),mesh_.get(),SLOT(requestWork()));
-
-    QWidget* widget1 = addParallelPlaneWidget( createGraphicsWindow(0,0,100,100) );
-    QWidget* widget2 = addModellerWidget( createGraphicsWindow(0,0,100,100), mesh_->get_node() );
-
-    // USE SINGLE THREADED.  OSG does not play nice with Qt Threads, setting this to anythign else results
-    // in numerous crashes in OSG's draw methods.
-    setRunFrameScheme(osgViewer::ViewerBase::ON_DEMAND);
-    setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
+    plane_manager_ = std::move(std::unique_ptr<ParallelPlaneManager>(new ParallelPlaneManager(5,1)));
 
     // disable the default setting of viewer.done() by pressing Escape.
     setKeyEventSetsDone(0);
 
-
-    ui->gridLayout->addWidget(widget1,0,0);
-    ui->gridLayout_2->addWidget(widget2,0,0);
+    ui->widget->Initialize(plane_manager_.get());
     ui->statusBar->showMessage("Building planes");
 
     plane_manager_->AddNewPlane("pca0","pca1",true);
@@ -68,81 +42,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect( &_timer, SIGNAL(timeout()), this, SLOT(update()) );
     connect(ui->actionClose,SIGNAL(triggered()),this,SLOT(close()));
-
-    draw_window_ = new DrawWindow(plane_manager_.get(),this);
-    draw_window_->show();
     _timer.start( 10 );
 }
 
 MainWindow::~MainWindow()
 {
-    if(mesh_seg)delete mesh_seg;
     delete ui;
 }
 void MainWindow::close(){
    QApplication::quit();
 }
-QWidget* MainWindow::addParallelPlaneWidget( osgQt::GraphicsWindowQt* gw)
-{
-    osgViewer::View* view = new osgViewer::View;
-    addView( view );
 
-    osg::Camera* camera = view->getCamera();
-    camera->setGraphicsContext( gw );
-
-    const osg::GraphicsContext::Traits* traits = gw->getTraits();
-
-    camera->setClearColor( osg::Vec4(0.2, 0.2, 0.6, 1.0) );
-    camera->setViewport( new osg::Viewport(0, 0, traits->width, traits->height) );
-    camera->setProjectionMatrixAsPerspective(30.0f, static_cast<double>(traits->width)/static_cast<double>(traits->height), 1.0f, 1000.0f );
-
-
-    //TODO: orthographic camera (osg TrackballManipulator doesn't support ortho zoom so we'll need a custom camera
-    //camera->setProjectionMatrixAsOrtho(0.0f, 100,0.0f,100, 1.0f, 10000.0f );
-
-    {   // Manually rotate parallel plane widget to correct orientation (TODO:  Fix this hack with something cleaner)
-        osg::Matrix m1 = osg::Matrix::rotate(-1.57,osg::Vec3f(1,0,0));
-        osg::Matrix m2 = osg::Matrix::rotate(3.14,osg::Vec3f(0,0,1));
-        osg::Matrix m3 = osg::Matrix::rotate(-1.57,osg::Vec3f(0,0,1));
-        parent_transform_->setMatrix(m2*m1*m3);
-    }
-    view->setSceneData(parent_transform_);
-    view->addEventHandler( new osgViewer::StatsHandler );
-    view->setCameraManipulator( new osgGA::TrackballManipulator);
-
-    return gw->getGLWidget();
-}
-
-QWidget* MainWindow::addModellerWidget( osgQt::GraphicsWindowQt* gw, osg::ref_ptr<osg::Node> scene)
-{
-    osgViewer::View* view = new osgViewer::View;
-
-    addView( view );
-    osg::Camera* camera = view->getCamera();
-    camera->setGraphicsContext( gw );
-
-    const osg::GraphicsContext::Traits* traits = gw->getTraits();
-
-    camera->setClearColor( osg::Vec4(0.2, 0.2, 0.6, 1.0) );
-    camera->setViewport( new osg::Viewport(0, 0, traits->width, traits->height) );
-    camera->setProjectionMatrixAsPerspective(30.0f, static_cast<double>(traits->width)/static_cast<double>(traits->height), 1.0f, 1000.0f );
-
-    //TODO: orthographic camera (osg TrackballManipulator doesn't support ortho zoom so we'll need a custom camera
-    //camera->setProjectionMatrixAsOrtho(0.0f, 100,0.0f,100, 1.0f, 10000.0f );
-
-    {   // Manually rotate model widget to correct orientation (TODO:  Fix this hack with something cleaner)
-        osg::MatrixTransform *t = new osg::MatrixTransform();
-        osg::Matrix m1 = osg::Matrix::rotate(1.57,osg::Vec3f(1,0,0));
-        t->setMatrix(m1);
-        t->addChild(scene);
-
-        view->setSceneData(t);
-    }
-    view->addEventHandler( new osgViewer::StatsHandler );
-    view->setCameraManipulator( new osgGA::TrackballManipulator );
-
-    return gw->getGLWidget();
-}
 void MainWindow::testBarChartDemo(QCustomPlot *customPlot)
 {
   // create empty bar chart objects:
@@ -209,22 +119,4 @@ void MainWindow::testBarChartDemo(QCustomPlot *customPlot)
   legendFont.setPointSize(10);
   customPlot->legend->setFont(legendFont);
   customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
-}
-osgQt::GraphicsWindowQt* MainWindow::createGraphicsWindow( int x, int y, int w, int h, const std::string& name, bool windowDecoration )
-{
-    osg::DisplaySettings* ds = osg::DisplaySettings::instance().get();
-    osg::ref_ptr<osg::GraphicsContext::Traits> traits = new osg::GraphicsContext::Traits;
-    traits->windowName = name;
-    traits->windowDecoration = windowDecoration;
-    traits->x = x;
-    traits->y = y;
-    traits->width = w;
-    traits->height = h;
-    traits->doubleBuffer = true;
-    traits->alpha = ds->getMinimumNumAlphaBits();
-    traits->stencil = ds->getMinimumNumStencilBits();
-    traits->sampleBuffers = ds->getMultiSamples();
-    traits->samples = ds->getNumMultiSamples();
-
-    return new osgQt::GraphicsWindowQt(traits.get());
 }

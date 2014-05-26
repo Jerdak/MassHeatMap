@@ -3,9 +3,7 @@
 
 #include "ParallelPlaneManager.h"
 #include "Database.h"
-#include "DrawableMesh.h"
 #include "qcustomplot.h"
-#include "MeshSegmenter.h"
 namespace Ui {
     class MainWindow;
 }
@@ -32,12 +30,10 @@ public:
 private:
     Ui::MainWindow *ui;
     QTimer _timer;
-    std::unique_ptr<DrawableMesh> mesh_;
     std::unique_ptr<ParallelPlaneManager> plane_manager_;
     osg::MatrixTransform *parent_transform_;
     OptionWindow *option_window_;
     DrawWindow *draw_window_;
-    MeshSegmenter *mesh_seg;
 private slots:
     void close();
 };
